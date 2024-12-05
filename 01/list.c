@@ -106,3 +106,18 @@ int list_setindex(list_t *list, size_t i, const void *e) {
  * @param comparison The function to use to compare two items
  */
 void list_sort(list_t *list, comparison_f comparison) { qsort(list->elements, list->len, list->elem_size, comparison); }
+
+/*
+ * Counts the number of times a condition is met in the list.
+ * @param list The list to perform the count on
+ * @param arg The argument to pass the counting function
+ * @param counter The counting function which returns 1 to increment the counter and 0 to do nothing
+ * @return The resulting count.
+ */
+size_t list_count(list_t *list, const void *arg, count_f counter) {
+    size_t count = 0;
+    for (size_t i = 0; i < list->len; i++) {
+        count += counter((list->elements + (list->elem_size * i)), arg);
+    }
+    return count;
+}

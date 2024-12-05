@@ -7,6 +7,7 @@
 static char buffer[BUFSIZ];
 
 int ascending_order(const void *a, const void *b) { return *(int *)(a) > *(int *)(b); }
+int check_equal(const void *e, const void *arg) { return *(int *)(e) == *(int *)(arg); }
 
 int main(int argc, char **argv) {
 
@@ -66,6 +67,34 @@ int main(int argc, char **argv) {
     }
 
     /* Print out the sum */
+
+    printf("%lu\n", sum);
+
+    /* Count how many times a unique number in the left list appears in the right list */
+
+    sum = 0;
+    // -1 is to ensure that the initial first item is not a number in the list
+    int last_seen = *((int *)list_getindex(&ls, 0)) - 1;
+    int current;
+    size_t last_count;
+
+    for (size_t i = 0; i < list_getlen(&ls); i++) {
+
+        /* If this number has already been seen, we accounted for it already */
+
+        current = *(int *)(list_getindex(&ls, i));
+        if (current == last_seen) {
+            sum += (current * last_count);
+            continue;
+        }
+
+        /* If it hasn't, then account for it and mark it as seen */
+
+        last_count = list_count(&rs, &current, check_equal);
+        sum += (current * last_count);
+        last_seen = current;
+    }
+
     printf("%lu\n", sum);
 
     return EXIT_SUCCESS;
