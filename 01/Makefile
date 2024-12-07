@@ -3,6 +3,7 @@ CFLAGS = -Wall -Wextra
 OUT = day01
 
 SRCS = $(wildcard *.c)
+SRCS += $(wildcard ../common/*.c)
 OBJS = $(patsubst %.c,%.o,$(SRCS))
 
 all: $(OBJS)
