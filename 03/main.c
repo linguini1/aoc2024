@@ -28,12 +28,21 @@ int main(int argc, char **argv) {
 
     mulpair_t pair;
     size_t sum = 0;
+    size_t applicable_sum = 0;
 
     while (lexer_pair(&lexer, &pair) != NULL) {
         sum += pair.a * pair.b;
+        if (lexer_applicable(&lexer)) {
+            applicable_sum += pair.a * pair.b;
+        }
     }
 
     printf("%lu\n", sum);
+    printf("%lu\n", applicable_sum);
+
+    /* Close file */
+
+    fclose(puzzle);
 
     return 0;
 }

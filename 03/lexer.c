@@ -4,15 +4,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void lexer_create(lexer_t *lexer, FILE *stream) { lexer->stream = stream; }
+/* Create a new lexer */
+void lexer_create(lexer_t *lexer, FILE *stream) {
+    lexer->stream = stream;
+    lexer->apply = true;
+}
 
+/* Whether the previous multiplication is applicable or not */
+bool lexer_applicable(lexer_t *lexer) { return lexer->apply; }
+
+/* Go back a character */
 static void lexer_back(lexer_t *lexer) { ungetc(lexer->last, lexer->stream); }
 
+/* Go forward a character */
 static char lexer_next(lexer_t *lexer) {
     lexer->last = fgetc(lexer->stream);
     return lexer->last;
 }
 
+/* Find the string 'mul(' */
 static bool lexer_find_mul(lexer_t *lexer) {
     static char search[] = {'m', 'u', 'l', '('};
 
@@ -46,6 +56,7 @@ static bool lexer_find_mul(lexer_t *lexer) {
     return false;
 }
 
+/* Parse a number */
 static bool lexer_parse_number(lexer_t *lexer, int *number) {
     char buffer[50] = {0};
     char c = '0';
@@ -68,6 +79,43 @@ static bool lexer_parse_number(lexer_t *lexer, int *number) {
     return true;
 }
 
+static bool lexer_multiplication(lexer_t *lexer, mulpair_t *pair) {
+
+    /* Look for start of "mul(" */
+
+    if (!lexer_find_mul(lexer)) {
+        return false;
+    }
+
+    /* Parse number */
+
+    if (!lexer_parse_number(lexer, &pair->a)) {
+        return false;
+    }
+
+    /* Get comma */
+
+    if (lexer_next(lexer) != ',') {
+        return false;
+    }
+
+    /* Parse number */
+
+    if (!lexer_parse_number(lexer, &pair->b)) {
+        return false;
+    }
+
+    /* Get closing brace */
+
+    if (lexer_next(lexer) != ')') {
+        return false;
+    }
+
+    /* If we're not at the end of the file then we found a multiplication instruction */
+
+    return !feof(lexer->stream);
+}
+
 /*
  * Returns NULL if end of stream, otherwise returns a pointer to the next pair.
  */
@@ -75,42 +123,56 @@ mulpair_t *lexer_pair(lexer_t *lexer, mulpair_t *pair) {
 
     while (!feof(lexer->stream)) {
 
-        /* Look for start of "mul(" */
+        lexer_next(lexer); /* Get the next character */
 
-        if (!lexer_find_mul(lexer)) {
-            continue;
+        /* If there is an 'm', look for a multiplication instruction. */
+
+        if (lexer->last == 'm') {
+            lexer_back(lexer);
+            if (!lexer_multiplication(lexer, pair)) {
+                continue;
+            }
+            return pair;
         }
 
-        /* Parse number */
+        /* If there is a 'd', look for do/don't instruction. */
+        else if (lexer->last == 'd') {
 
-        if (!lexer_parse_number(lexer, &pair->a)) {
-            continue;
+            if (lexer_next(lexer) != 'o') {
+                continue;
+            }
+
+            /* Can either be "()" or "n't()" here */
+
+            lexer_next(lexer);
+
+            /* DO! */
+            if (lexer->last == '(') {
+                if (lexer_next(lexer) == ')') {
+                    lexer->apply = true;
+                    continue;
+                }
+            }
+
+            /* DON'T! */
+            else if (lexer->last == 'n') {
+                if (lexer_next(lexer) != '\'') {
+                    continue;
+                }
+                if (lexer_next(lexer) != 't') {
+                    continue;
+                }
+                if (lexer_next(lexer) != '(') {
+                    continue;
+                }
+                if (lexer_next(lexer) != ')') {
+                    continue;
+                }
+                lexer->apply = false;
+                continue;
+            }
         }
-
-        /* Get comma */
-
-        if (lexer_next(lexer) != ',') {
-            continue;
-        }
-
-        /* Parse number */
-
-        if (!lexer_parse_number(lexer, &pair->b)) {
-            continue;
-        }
-
-        /* Get closing brace */
-
-        if (lexer_next(lexer) != ')') {
-            continue;
-        }
-
-        break;
     }
 
-    if (feof(lexer->stream)) {
-        return NULL;
-    }
-
-    return pair;
+    return NULL;
 }
