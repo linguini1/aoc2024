@@ -10,6 +10,7 @@
 
 unsigned int xmas_count(list_t *grid, size_t xlen, size_t ylen, size_t x, size_t y, char find);
 char next_char(char cur);
+int is_xmas(list_t *grid, size_t xlen, size_t ylen, size_t x, size_t y);
 
 typedef struct {
     int x;
@@ -19,6 +20,15 @@ typedef struct {
 /* Surrounding cell relative vectors */
 const coord_t SURROUNDING[] = {
     {0, 1}, {1, 0}, {1, 1}, {0, -1}, {-1, 0}, {-1, -1}, {1, -1}, {-1, 1},
+};
+
+const coord_t DIAGONAL[] = {
+    /* First diagonal */
+    {1, 1},
+    {-1, -1},
+    /* Second diagonal */
+    {1, -1},
+    {-1, 1},
 };
 
 int main(int argc, char **argv) {
@@ -71,7 +81,7 @@ int main(int argc, char **argv) {
 
     /* Recursively count occurrences of the word XMAS from each 'X' */
 
-    size_t total;
+    size_t total = 0;
     for (size_t y = 0; y < ylen; y++) {
         for (size_t x = 0; x < xlen; x++) {
             if (deref(char, list_getindex(&grid, y * ylen + x)) == 'X') {
@@ -82,8 +92,22 @@ int main(int argc, char **argv) {
 
     printf("%lu\n", total);
 
+    /* Look for X-MAS */
+
+    size_t cross_total = 0;
+    for (size_t y = 0; y < ylen; y++) {
+        for (size_t x = 0; x < xlen; x++) {
+            if (deref(char, list_getindex(&grid, y * ylen + x)) == 'A') {
+                cross_total += is_xmas(&grid, xlen, ylen, x, y);
+            }
+        }
+    }
+
+    printf("%lu\n", cross_total);
+
     /* Close input */
 
+    list_destroy(&grid);
     fclose(puzzle);
 }
 
@@ -101,6 +125,10 @@ char next_char(char cur) {
     }
 }
 
+static int out_of_bounds(int x, int y, size_t xlen, size_t ylen) {
+    return (x < 0 || y < 0) || ((x >= xlen) || (y >= ylen));
+}
+
 static unsigned int _xmas_count_rec(list_t *grid, size_t xlen, size_t ylen, size_t x, size_t y, char find,
                                     const coord_t *dir) {
     int next_x = x + dir->x;
@@ -108,11 +136,7 @@ static unsigned int _xmas_count_rec(list_t *grid, size_t xlen, size_t ylen, size
 
     /* Out of bounds */
 
-    if (next_x < 0 || next_y < 0) {
-        return 0;
-    }
-
-    if (next_x >= xlen || next_y >= ylen) {
+    if (out_of_bounds(next_x, next_y, xlen, ylen)) {
         return 0;
     }
 
@@ -145,4 +169,35 @@ unsigned int xmas_count(list_t *grid, size_t xlen, size_t ylen, size_t x, size_t
     }
 
     return total;
+}
+
+/* Returns 0 if false, 1 otherwise. Checks for MS on both diagonals. NOTE: Assumes passed x,y coordinate is definitely
+ * an A.
+ */
+int is_xmas(list_t *grid, size_t xlen, size_t ylen, size_t x, size_t y) {
+
+    int next_x;
+    int next_y;
+    char c1;
+    char c2;
+
+    /* If any coordinate is out of bounds then we fail */
+    /* If the cell is not an 'M' or 'S' then we fail */
+    /* If the opposite diagonal cell is not the opposite letter, we fail */
+
+    for (size_t i = 0; i < 3; i += 2) {
+        next_x = x + DIAGONAL[i].x;
+        next_y = y + DIAGONAL[i].y;
+        if (out_of_bounds(next_x, next_y, xlen, ylen)) return 0;
+        c1 = deref(char, list_getindex(grid, next_y * ylen + next_x));
+        if (c1 != 'M' && c1 != 'S') return 0;
+
+        next_x = x + DIAGONAL[i + 1].x;
+        next_y = y + DIAGONAL[i + 1].y;
+        if (out_of_bounds(next_x, next_y, xlen, ylen)) return 0;
+        c2 = deref(char, list_getindex(grid, next_y * ylen + next_x));
+        if ((c2 != 'M' && c2 != 'S') || c1 == c2) return 0;
+    }
+
+    return 1;
 }
