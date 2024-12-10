@@ -160,7 +160,7 @@ void *hmap_get(hmap_t const *hmap, void const *key) {
     do {
         switch (entry_state(&hmap->pairs[i])) {
 
-        /* Nothing ever live here, so key doesn't exist */
+        /* Nothing ever lived here, so key doesn't exist */
         case ENT_EMPTY:
             return NULL;
 
@@ -171,9 +171,10 @@ void *hmap_get(hmap_t const *hmap, void const *key) {
 
         /* Something lives here */
         case ENT_OCC: {
+
             /* Key matches, this is the value we need */
-            if (!memcmp(hmap->pairs[index].key, key, hmap->keysize)) {
-                return hmap->pairs[index].value;
+            if (!memcmp(hmap->pairs[i].key, key, hmap->keysize)) {
+                return hmap->pairs[i].value;
             }
 
             /* No match, keep probing */

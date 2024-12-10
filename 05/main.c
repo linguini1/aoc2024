@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 
     /* Create hashmap of rules */
 
-    hmap_create(&rulebook, NULL, BUFSIZ, sizeof(int), sizeof(list_t));
+    hmap_create(&rulebook, NULL, 100, sizeof(int), sizeof(list_t));
 
     int before;
     int after;
@@ -67,6 +67,11 @@ int main(int argc, char **argv) {
 
         /* List is copied on put, so it's okay that it was allocated on the stack */
         hmap_put(&rulebook, &before, &newrules);
+    }
+
+    int numbers[] = {47, 61, 75, 29, 53, 97};
+    for (int i = 0; i < sizeof(numbers) / sizeof(numbers[0]); i++) {
+        list_t *rules = hmap_get(&rulebook, &numbers[i]);
     }
 
     /* Iterate over updates */
