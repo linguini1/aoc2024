@@ -113,7 +113,7 @@ void *hmap_get(hmap_t const *hmap, void const *key) {
         /* Something lives here */
         case ENT_OCC: {
             /* Key matches, this is the value we need */
-            if (!strncmp(hmap->pairs[index].key, key, hmap->keysize)) {
+            if (!memcmp(hmap->pairs[index].key, key, hmap->keysize)) {
                 return hmap->pairs[index].value;
             }
 
@@ -155,7 +155,7 @@ void hmap_remove(hmap_t *hmap, void const *key) {
         case ENT_OCC: {
 
             /* We found a matching entry, remove the pair and mark as deleted */
-            if (!strncmp(hmap->pairs[i].key, key, hmap->keysize)) {
+            if (!memcmp(hmap->pairs[i].key, key, hmap->keysize)) {
                 free_pair(&hmap->pairs[i]);
                 mark_deleted(&hmap->pairs[i]);
                 hmap->len--;
@@ -206,6 +206,13 @@ void hmap_put(hmap_t *hmap, void const *key, void const *value) {
 
         /* If the slot is occupied */
         case ENT_OCC:
+
+            /* Check if the key matches what's in this slot, and if so replace it. */
+            if (!memcmp(hmap->pairs[i].key, key, hmap->keysize)) {
+                memcpy(hmap->pairs[i].value, value, hmap->valsize);
+                return;
+            }
+
             i = (i + 1) % hmap->capacity; /* Linearly probe until an available slot is found */
             break;
         }

@@ -130,7 +130,7 @@ size_t list_count(list_t *list, const void *arg, count_f counter) {
  */
 int list_in(list_t const *list, const void *e) {
     for (size_t i = 0; i < list->len; i++) {
-        if (!strncmp(list_getindex(list, i), e, list->elem_size)) {
+        if (!memcmp(list_getindex(list, i), e, list->elem_size)) {
             return 1;
         }
     }
@@ -145,7 +145,7 @@ int list_in(list_t const *list, const void *e) {
  */
 ssize_t list_index(list_t const *list, const void *e) {
     for (size_t i = 0; i < list->len; i++) {
-        if (!strncmp(list_getindex(list, i), e, list->elem_size)) {
+        if (!memcmp(list_getindex(list, i), e, list->elem_size)) {
             return i;
         }
     }
