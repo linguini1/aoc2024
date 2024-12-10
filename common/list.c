@@ -37,7 +37,7 @@ void list_destroy(list_t *list) {
  * @param `elem` the element to append.
  * @return 0 on success, errno on failure.
  */
-int list_append(list_t *list, const void *element) {
+int list_append(list_t *list, void *element) {
 
     assert(list->elements != NULL);
 
@@ -64,7 +64,7 @@ int list_append(list_t *list, const void *element) {
  * @param list The list to get the length of
  * @return The length of the list
  */
-size_t list_getlen(list_t *list) { return list->len; }
+size_t list_getlen(const list_t *list) { return list->len; }
 
 /*
  * Gets a reference to the element at index `i`.
@@ -72,7 +72,7 @@ size_t list_getlen(list_t *list) { return list->len; }
  * @param i The index to get from
  * @return A reference to the indexed element if it exists, NULL otherwise.
  */
-void *list_getindex(list_t *list, size_t i) {
+void *list_getindex(list_t const *list, size_t i) {
 
     if (i > list->len) {
         return NULL;
@@ -120,4 +120,34 @@ size_t list_count(list_t *list, const void *arg, count_f counter) {
         count += counter((list->elements + (list->elem_size * i)), arg);
     }
     return count;
+}
+
+/*
+ * Checks if the given element is in the list at least once
+ * @param list The list to check
+ * @param e The element to look for
+ * @return 0 if element is not present, 1 if present
+ */
+int list_in(list_t const *list, const void *e) {
+    for (size_t i = 0; i < list->len; i++) {
+        if (!strncmp(list_getindex(list, i), e, list->elem_size)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/*
+ * Returns the index of the first occurrence of `e`.
+ * @param list The list to search
+ * @param e The element to look for
+ * @return A positive index corresponding to the first occurrence of the element, or -1 if not found.
+ */
+ssize_t list_index(list_t const *list, const void *e) {
+    for (size_t i = 0; i < list->len; i++) {
+        if (!strncmp(list_getindex(list, i), e, list->elem_size)) {
+            return i;
+        }
+    }
+    return -1;
 }
