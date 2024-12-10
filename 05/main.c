@@ -10,6 +10,7 @@
 #define deref(type, thing) *((type *)(thing))
 
 static char buffer[BUFSIZ];
+static hmap_t rulebook;
 
 typedef struct {
     int before;
@@ -17,6 +18,7 @@ typedef struct {
 } rule_t;
 
 bool ordered_correctly(list_t *update, hmap_t *rules);
+void reorder(list_t *update);
 
 /* Key for hashmap */
 static size_t hash(const void *key) { return *(int *)key; }
@@ -38,7 +40,6 @@ int main(int argc, char **argv) {
 
     /* Create hashmap of rules */
 
-    hmap_t rulebook;
     hmap_create(&rulebook, hash, BUFSIZ, sizeof(int), sizeof(list_t));
 
     int before;
@@ -77,7 +78,8 @@ int main(int argc, char **argv) {
     char *tok;
     int page;
 
-    size_t total = 0;
+    size_t total_correct = 0;
+    size_t total_incorrect = 0;
     for (;;) {
 
         if (fgets(buffer, sizeof(buffer), puzzle) == NULL) break;
@@ -92,10 +94,13 @@ int main(int argc, char **argv) {
             tok = strtok(NULL, ",");
         } while (tok != NULL);
 
-        /* Process update list to verify correct order TODO */
+        /* Process update list to verify correct order */
 
         if (ordered_correctly(&update, &rulebook)) {
-            total += deref(int, list_getindex(&update, list_getlen(&update) / 2));
+            total_correct += deref(int, list_getindex(&update, list_getlen(&update) / 2));
+        } else {
+            reorder(&update);
+            total_incorrect += deref(int, list_getindex(&update, list_getlen(&update) / 2));
         }
 
         /* Delete update list to be made fresh */
@@ -103,7 +108,8 @@ int main(int argc, char **argv) {
         list_destroy(&update);
     }
 
-    printf("%lu\n", total);
+    printf("%lu\n", total_correct);
+    printf("%lu\n", total_incorrect);
 
     /* Close input */
 
@@ -145,4 +151,24 @@ bool ordered_correctly(list_t *update, hmap_t *rules) {
     }
 
     return true;
+}
+
+static int rule_reorder(const void *a, const void *b) {
+
+    list_t *rules = hmap_get(&rulebook, a);
+
+    /* No rule for this number, consider the two elements equal */
+    if (rules == NULL) return 0;
+
+    /* Swap a and b if if a precedes b in the rulebook */
+    if (list_in(rules, b)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+void reorder(list_t *update) {
+    list_sort(update, rule_reorder);
+    return;
 }
