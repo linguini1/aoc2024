@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     /* Create 'set' of visited locations */
 
     hmap_t visited;
-    hmap_create(&visited, NULL, xlen * ylen, sizeof(coord_t), sizeof(coord_t));
+    hmap_create(&visited, NULL, BUFSIZ, sizeof(coord_t), sizeof(coord_t));
     hmap_put(&visited, &guard.pos, &guard.pos); /* Record start position */
 
     /* Start state machine logic */
