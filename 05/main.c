@@ -20,9 +20,6 @@ typedef struct {
 bool ordered_correctly(list_t *update, hmap_t *rules);
 void reorder(list_t *update);
 
-/* Key for hashmap */
-static size_t hash(const void *key) { return *(int *)key; }
-
 int main(int argc, char **argv) {
 
     if (argc != 2) {
@@ -40,7 +37,7 @@ int main(int argc, char **argv) {
 
     /* Create hashmap of rules */
 
-    hmap_create(&rulebook, hash, BUFSIZ, sizeof(int), sizeof(list_t));
+    hmap_create(&rulebook, NULL, BUFSIZ, sizeof(int), sizeof(list_t));
 
     int before;
     int after;

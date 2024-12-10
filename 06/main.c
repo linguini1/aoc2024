@@ -43,9 +43,6 @@ static int out_of_bounds(coord_t coords, size_t xlen, size_t ylen) {
 /* Add two coordinates */
 static coord_t coord_add(coord_t a, coord_t b) { return (coord_t){.x = a.x + b.x, .y = a.y + b.y}; }
 
-/* Hash a coordinate */
-static size_t hash_coord(const void *key) { return deref(coord_t, key).x + deref(coord_t, key).y; }
-
 int main(int argc, char **argv) {
 
     if (argc != 2) {
@@ -102,7 +99,7 @@ int main(int argc, char **argv) {
     /* Create 'set' of visited locations */
 
     hmap_t visited;
-    hmap_create(&visited, hash_coord, xlen * ylen, sizeof(coord_t), sizeof(coord_t));
+    hmap_create(&visited, NULL, xlen * ylen, sizeof(coord_t), sizeof(coord_t));
     hmap_put(&visited, &guard.pos, &guard.pos); /* Record start position */
 
     /* Start state machine logic */

@@ -2,9 +2,10 @@
 #define _HASHMAP_H_
 
 #include <stdlib.h>
+#include <stdint.h>
 
 /* Generic hash function */
-typedef size_t (*hash_f)(const void *);
+typedef uint32_t (*hash_f)(const uint8_t *data, size_t len);
 
 /* Hashmap pair */
 struct hpair {
