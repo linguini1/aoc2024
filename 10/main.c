@@ -93,6 +93,7 @@ int main(int argc, char **argv) {
 
     /* Close input */
 
+    list_destroy(&grid);
     fclose(puzzle);
 }
 
