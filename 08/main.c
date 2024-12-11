@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
             break;
         }
 
-        xlen = strlen(buffer);
+        xlen = strlen(buffer) - 1;
 
         /* Check each row for antennas and store their location and frequency */
 
