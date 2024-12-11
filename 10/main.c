@@ -32,6 +32,7 @@ static int out_of_bounds(coord_t coords, size_t xlen, size_t ylen) {
 }
 
 size_t num_trails(const list_t *grid, size_t x, size_t y, size_t xlen, size_t ylen);
+size_t trail_rating(const list_t *grid, size_t x, size_t y, size_t xlen, size_t ylen);
 
 int main(int argc, char **argv) {
 
@@ -77,14 +78,18 @@ int main(int argc, char **argv) {
     /* Count possible trails from a trail head */
 
     size_t trails = 0;
+    size_t ratings = 0;
     for (size_t y = 0; y < ylen; y++) {
         for (size_t x = 0; x < xlen; x++) {
             if (deref(uint8_t, list_getindex(&grid, y * ylen + x)) == TRAILHEAD) {
                 trails += num_trails(&grid, x, y, xlen, ylen);
+                ratings += trail_rating(&grid, x, y, xlen, ylen);
             }
         }
     }
+
     printf("%lu\n", trails);
+    printf("%lu\n", ratings);
 
     /* Close input */
 
@@ -97,7 +102,7 @@ int main(int argc, char **argv) {
  * @param loc The current location
  * @param xlen The total number of columns in the topological map
  * @param ylen The total number of rows in the topological map
- * @param visited The set of previously visited trail-ends
+ * @param visited The set of previously visited trail-ends. Leave NULL to record all trail ends
  * @return The number of uniquely possible to visit trail ends
  */
 static size_t look_for(const list_t *grid, coord_t loc, size_t xlen, size_t ylen, set_t *visited) {
@@ -112,10 +117,10 @@ static size_t look_for(const list_t *grid, coord_t loc, size_t xlen, size_t ylen
     /* This location is a trail end, yippee! */
 
     if (*self == TRAILEND) {
-        if (set_contains(visited, &loc)) {
+        if (visited != NULL && set_contains(visited, &loc)) {
             return 0;
         } else {
-            set_add(visited, &loc);
+            if (visited != NULL) set_add(visited, &loc);
             return 1;
         }
     }
@@ -149,6 +154,7 @@ static size_t look_for(const list_t *grid, coord_t loc, size_t xlen, size_t ylen
  * @param y The y coordinate of the location
  * @param xlen The total number of columns in the topological map
  * @param ylen The total number of rows in the topological map
+ * @return The total number of uniquely reachable trail ends from the location
  */
 size_t num_trails(const list_t *grid, size_t x, size_t y, size_t xlen, size_t ylen) {
 
@@ -166,4 +172,25 @@ size_t num_trails(const list_t *grid, size_t x, size_t y, size_t xlen, size_t yl
     set_destroy(&visited);
 
     return total;
+}
+
+/* Calculates the trail rating.
+ * @param grid The topological map
+ * @param x The x coordinate of the location
+ * @param y The y coordinate of the location
+ * @param xlen The total number of columns in the topological map
+ * @param ylen The total number of rows in the topological map
+ * @return The trail rating
+ */
+size_t trail_rating(const list_t *grid, size_t x, size_t y, size_t xlen, size_t ylen) {
+
+    /* Only trailheads are valid start positions */
+
+    if (deref(uint8_t, list_getindex(grid, y * ylen + x)) != TRAILHEAD) {
+        return 0;
+    }
+
+    /* Start looking for trail ends! But don't count previously visited trail ends. */
+
+    return look_for(grid, (coord_t){.x = x, .y = y}, xlen, ylen, NULL);
 }
