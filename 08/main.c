@@ -6,6 +6,7 @@
 
 #include "../common/hashmap.h"
 #include "../common/list.h"
+#include "../common/set.h"
 
 #define EMPTY_CELL '.'
 #define deref(type, thing) (*((type *)(thing)))
@@ -94,11 +95,11 @@ int main(int argc, char **argv) {
 
     /* Create a set for the unique antinode locations */
 
-    hmap_t antinodes;
-    hmap_create(&antinodes, NULL, 1024, sizeof(coord_t), sizeof(coord_t));
+    set_t antinodes;
+    set_create(&antinodes, NULL, 1024, sizeof(coord_t));
 
-    hmap_t antinodes_all;
-    hmap_create(&antinodes_all, NULL, 2048, sizeof(coord_t), sizeof(coord_t));
+    set_t antinodes_all;
+    set_create(&antinodes_all, NULL, 2048, sizeof(coord_t));
 
     /* Iterate over all the different frequencies */
 
@@ -144,13 +145,13 @@ int main(int argc, char **argv) {
 
                     /* Only record the first pair of antinodes for part 1 */
                     if (i == 1) {
-                        if (!out_of_bounds(&antipair[0], xlen, ylen)) hmap_put(&antinodes, &antipair[0], &antipair[0]);
-                        if (!out_of_bounds(&antipair[1], xlen, ylen)) hmap_put(&antinodes, &antipair[1], &antipair[1]);
+                        if (!out_of_bounds(&antipair[0], xlen, ylen)) set_add(&antinodes, &antipair[0]);
+                        if (!out_of_bounds(&antipair[1], xlen, ylen)) set_add(&antinodes, &antipair[1]);
                     }
 
                     /* Record all antinodes for part 2 */
-                    if (!out_of_bounds(&antipair[0], xlen, ylen)) hmap_put(&antinodes_all, &antipair[0], &antipair[0]);
-                    if (!out_of_bounds(&antipair[1], xlen, ylen)) hmap_put(&antinodes_all, &antipair[1], &antipair[1]);
+                    if (!out_of_bounds(&antipair[0], xlen, ylen)) set_add(&antinodes_all, &antipair[0]);
+                    if (!out_of_bounds(&antipair[1], xlen, ylen)) set_add(&antinodes_all, &antipair[1]);
 
                     i++;
                 }
@@ -158,12 +159,13 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("%lu\n", hmap_len(&antinodes));
-    printf("%lu\n", hmap_len(&antinodes_all));
+    printf("%lu\n", set_len(&antinodes));
+    printf("%lu\n", set_len(&antinodes_all));
 
     /* Close input */
 
     hmap_destroy(&grid);
-    hmap_destroy(&antinodes);
+    set_destroy(&antinodes);
+    set_destroy(&antinodes_all);
     fclose(puzzle);
 }
