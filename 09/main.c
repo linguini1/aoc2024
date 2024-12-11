@@ -18,6 +18,7 @@ typedef struct {
 
 size_t checksum(const list_t *filesystem);
 void fine_grain_compact(const list_t *og_files, list_t *compacted);
+void coarse_grain_compact(const list_t *og_files, list_t *compacted);
 
 int main(int argc, char **argv) {
 
@@ -73,15 +74,96 @@ int main(int argc, char **argv) {
 
     /* Calculate checksum for coarse-grain compacted file system */
 
+    list_t coarse_grain;
+    coarse_grain_compact(&files, &coarse_grain);
+    printf("%llu\n", checksum(&coarse_grain));
+    list_destroy(&coarse_grain);
+
     /* Close input */
 
     list_destroy(&files);
     fclose(puzzle);
 }
 
+/* Compacts the filesystem on a per-file basis (coarse-grained).
+ * @param og_files The file system to compact
+ * @param compacted A pointer to an uninitialized list where the compacted file system can be stored. Caller's
+ * responsibility to free.
+ */
+void coarse_grain_compact(const list_t *og_files, list_t *compacted) {
+
+    /* Create a copy of the original files so we can modify them */
+
+    list_create(compacted, list_getlen(og_files), sizeof(file_t));
+    for (size_t i = 0; i < list_getlen(og_files); i++) {
+        list_append(compacted, list_getindex(og_files, i));
+    }
+
+    /* Compact the files. Now we consider the index into the list to be the position of the file */
+
+    for (size_t i = list_getlen(og_files) - 1; i > 0; i--) {
+
+        /* Get the highest ID file and try to move it */
+
+        file_t *to_move;
+        size_t taken_from = 0;
+        for (taken_from = 0; taken_from < list_getlen(compacted); taken_from++) {
+
+            /* Go through the list until we find the file ID we're looking for */
+            to_move = list_getindex(compacted, taken_from);
+            if (to_move->id == i) {
+                break;
+            }
+        }
+
+        /* Go through current compacted file system state and look for somewhere with room to move to */
+
+        for (size_t j = 0; j < list_getlen(compacted); j++) {
+
+            /* Get the next file slot */
+
+            file_t *cur = list_getindex(compacted, j);
+            if (cur->id == to_move->id) break; /* We reached ourselves, nothing earlier is free */
+
+            /* The file has enough free space after it for us to move to */
+
+            if (cur->freespace >= to_move->size) {
+
+                /* Figure out the file right before the file to be moved */
+
+                file_t *prev = list_getindex(compacted, list_index(compacted, to_move) - 1);
+                prev->freespace += (to_move->size + to_move->freespace);
+
+                cur->freespace -= to_move->size; /* Decrease free space by the amount this file occupies */
+
+                /* This file now inherits the trailing free space */
+
+                to_move->freespace = cur->freespace;
+                cur->freespace = 0;
+
+                /* Update this file's position to be right after `cur` by shifting down all subsequent files. */
+
+                file_t temp =
+                    deref(file_t, list_getindex(compacted, j + 1)); /* Get the file that was right after cur */
+                list_setindex(compacted, j + 1, to_move);           /* Put this file right after `cur` */
+
+                /* Shift down files */
+
+                for (size_t k = j + 2; k <= taken_from; k++) {
+                    file_t temp2 = deref(file_t, list_getindex(compacted, k)); /* Get k */
+                    list_setindex(compacted, k, &temp);                        /* Store k-1 in k */
+                    temp = temp2;
+                }
+
+                break;
+            }
+        }
+    }
+}
+
 /* Compacts the filesystem on a per-block basis (fine-grained).
  * @param og_files The file system to compact
- * @param compacted A pointer to an uninitialized list where the compacted file system can be stored. Callers
+ * @param compacted A pointer to an uninitialized list where the compacted file system can be stored. Caller's
  * responsibility to free.
  */
 void fine_grain_compact(const list_t *og_files, list_t *compacted) {
