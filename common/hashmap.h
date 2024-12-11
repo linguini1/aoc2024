@@ -1,8 +1,8 @@
 #ifndef _HASHMAP_H_
 #define _HASHMAP_H_
 
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 /* Generic hash function */
 typedef uint32_t (*hash_f)(const uint8_t *data, size_t len);
@@ -29,5 +29,8 @@ void *hmap_get(hmap_t const *hmap, void const *key);
 void hmap_remove(hmap_t *hmap, void const *key);
 void hmap_put(hmap_t *hmap, void const *key, void const *value);
 size_t hmap_len(hmap_t const *hmap);
+void *hmap_iter_keys(hmap_t const *hmap, size_t *i, void **key);
+void *hmap_iter_vals(hmap_t const *hmap, size_t *i, void **val);
+void *hmap_iter_pairs(hmap_t const *hmap, size_t *i, void **key, void **val);
 
 #endif // _HASHMAP_H_

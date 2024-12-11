@@ -278,3 +278,53 @@ void hmap_put(hmap_t *hmap, void const *key, void const *value) {
         }
     } while (i != index);
 }
+
+/* Iterate over the keys in the hashmap.
+ * @param i Contains state between calls. Pass with initial value of 0.
+ * @param key Where to store the reference to the current key
+ * @return NULL when all keys have been iterated over, the same pointer as `key` otherwise
+ */
+void *hmap_iter_keys(hmap_t const *hmap, size_t *i, void **key) {
+    for (; *i < hmap->capacity; (*i)++) {
+        if (entry_state(&hmap->pairs[*i]) == ENT_OCC) {
+            *key = hmap->pairs[*i].key;
+            (*i)++;
+            return *key;
+        }
+    }
+    return NULL;
+}
+
+/* Iterate over the values in the hashmap.
+ * @param i Contains state between calls. Pass with initial value of 0.
+ * @param val Where to store the reference to the current value
+ * @return NULL when all values have been iterated over, the same pointer as contained in `val` otherwise
+ */
+void *hmap_iter_vals(hmap_t const *hmap, size_t *i, void **val) {
+    for (; *i < hmap->capacity; (*i)++) {
+        if (entry_state(&hmap->pairs[*i]) == ENT_OCC) {
+            *val = hmap->pairs[*i].value;
+            (*i)++;
+            return *val;
+        }
+    }
+    return NULL;
+}
+
+/* Iterate over the pairs in the hash map.
+ * @param i Contains state between calls. Pass with initial value of 0.
+ * @param key Where to store the reference to the current key
+ * @param val Where to store the reference to the current value
+ * @return NULL when all values have been iterated over, the same pointer as `key` otherwise
+ */
+void *hmap_iter_pairs(hmap_t const *hmap, size_t *i, void **key, void **val) {
+    for (; *i < hmap->capacity; (*i)++) {
+        if (entry_state(&hmap->pairs[*i]) == ENT_OCC) {
+            *key = hmap->pairs[*i].key;
+            *val = hmap->pairs[*i].value;
+            (*i)++;
+            return key;
+        }
+    }
+    return NULL;
+}
