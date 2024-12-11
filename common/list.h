@@ -24,6 +24,6 @@ int list_in(list_t const *list, const void *e);
 int list_setindex(list_t *list, size_t i, const void *e);
 void list_sort(list_t *list, comparison_f comparison);
 size_t list_count(list_t *list, const void *arg, count_f counter);
-ssize_t list_index(list_t const *list, const void *e);
+long long list_index(list_t const *list, const void *e);
 
 #endif // _LIST_H_

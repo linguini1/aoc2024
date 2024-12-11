@@ -1,9 +1,10 @@
-#include "list.h"
 #include <assert.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "list.h"
 
 /*
  * Constructs a new list.
@@ -43,8 +44,8 @@ int list_append(list_t *list, void *element) {
 
     /* We need to add more space. Increase by ~30%. */
     if (list->len + 1 > list->capacity) {
-        list->elements = reallocarray(list->elements, list->capacity * 1.3, list->elem_size);
-        if (errno != 0) {
+        list->elements = realloc(list->elements, list->capacity * list->elem_size * 1.3);
+        if (list->elements == NULL) {
             return errno;
         }
 
@@ -143,7 +144,7 @@ int list_in(list_t const *list, const void *e) {
  * @param e The element to look for
  * @return A positive index corresponding to the first occurrence of the element, or -1 if not found.
  */
-ssize_t list_index(list_t const *list, const void *e) {
+long long list_index(list_t const *list, const void *e) {
     for (size_t i = 0; i < list->len; i++) {
         if (!memcmp(list_getindex(list, i), e, list->elem_size)) {
             return i;
