@@ -16,6 +16,8 @@ typedef struct {
     uint8_t freespace;
 } file_t;
 
+size_t checksum(const list_t *filesystem);
+
 int main(int argc, char **argv) {
 
     if (argc != 2) {
@@ -125,20 +127,33 @@ int main(int argc, char **argv) {
 
     /* Calculate checksum */
 
-    size_t checksum = 0;
-    for (size_t i = 0, pos = 0; i < list_getlen(&compacted); i++) {
-        file_t *cur = list_getindex(&compacted, i);
-        for (size_t j = 0; j < cur->size; j++) {
-            checksum += cur->id * pos;
-            pos++;
-        }
-    }
-
-    printf("%llu\n", checksum);
+    printf("%llu\n", checksum(&compacted));
 
     /* Close input */
 
     list_destroy(&files);
     list_destroy(&compacted);
     fclose(puzzle);
+}
+
+/* Calculates the checksum for the file system
+ * @param filesystem The filesystem to calculate the checksum for
+ * @return The checksum
+ */
+size_t checksum(const list_t *filesystem) {
+    size_t checksum = 0;
+    for (size_t i = 0, pos = 0; i < list_getlen(filesystem); i++) {
+        file_t *cur = list_getindex(filesystem, i);
+
+        /* Add up each block */
+
+        for (size_t j = 0; j < cur->size; j++) {
+            checksum += cur->id * pos;
+            pos++;
+        }
+
+        /* Empty spaces count for nothing but contribute to position */
+        pos += cur->freespace;
+    }
+    return checksum;
 }
