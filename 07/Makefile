@@ -7,7 +7,7 @@ SRCS += $(wildcard ../common/*.c)
 OBJS = $(patsubst %.c,%.o,$(SRCS))
 
 all: $(OBJS)
-	$(CC) $(OBJS) -o $(OUT)
+	$(CC) $(OBJS) -o $(OUT) -lm
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
