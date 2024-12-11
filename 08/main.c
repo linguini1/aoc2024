@@ -97,6 +97,9 @@ int main(int argc, char **argv) {
     hmap_t antinodes;
     hmap_create(&antinodes, NULL, 1024, sizeof(coord_t), sizeof(coord_t));
 
+    hmap_t antinodes_all;
+    hmap_create(&antinodes_all, NULL, 2048, sizeof(coord_t), sizeof(coord_t));
+
     /* Iterate over all the different frequencies */
 
     size_t k = 0;
@@ -105,7 +108,7 @@ int main(int argc, char **argv) {
 
         /* Calculate the antinodes for each pair of antennas within the frequency */
 
-        coord_t pair_antinodes[2];
+        coord_t antipair[2];
 
         for (size_t i = 0; i < list_getlen(antennas); i++) {
             for (size_t j = 0; j < list_getlen(antennas); j++) {
@@ -113,48 +116,54 @@ int main(int argc, char **argv) {
                 /* Skip pairs of the same antenna */
                 if (i == j) continue;
 
-                /* Calculate the antinodes for all pairs of antennas */
-                calc_antinodes(list_getindex(antennas, i), list_getindex(antennas, j), pair_antinodes);
+                antenna_t *a = list_getindex(antennas, i);
+                antenna_t *b = list_getindex(antennas, j);
 
-                /* If the antinodes aren't out of bounds, then record them in the set */
-                for (int l = 0; l < 2; l++) {
-                    if (!out_of_bounds(&pair_antinodes[l], xlen, ylen)) {
-                        hmap_put(&antinodes, &pair_antinodes[l], &pair_antinodes[l]);
+                /* Calculate the antinodes for all pairs of antennas */
+
+                int dx = a->pos.x - b->pos.x;
+                int dy = a->pos.y - b->pos.y;
+                int i = 0;
+
+                for (;;) {
+
+                    /* Antinode 1 will be an extension of these vector components from `b` */
+
+                    antipair[0].x = b->pos.x - dx * i;
+                    antipair[0].y = b->pos.y - dy * i;
+
+                    /* Antinode 2 will be a mirror of antinode 1 */
+
+                    antipair[1].x = a->pos.x + dx * i;
+                    antipair[1].y = a->pos.y + dy * i;
+
+                    /* If we're calculating outside the perimeter entirely, we can move on */
+                    if (out_of_bounds(&antipair[0], xlen, ylen) && out_of_bounds(&antipair[1], xlen, ylen)) {
+                        break;
                     }
+
+                    /* Only record the first pair of antinodes for part 1 */
+                    if (i == 1) {
+                        if (!out_of_bounds(&antipair[0], xlen, ylen)) hmap_put(&antinodes, &antipair[0], &antipair[0]);
+                        if (!out_of_bounds(&antipair[1], xlen, ylen)) hmap_put(&antinodes, &antipair[1], &antipair[1]);
+                    }
+
+                    /* Record all antinodes for part 2 */
+                    if (!out_of_bounds(&antipair[0], xlen, ylen)) hmap_put(&antinodes_all, &antipair[0], &antipair[0]);
+                    if (!out_of_bounds(&antipair[1], xlen, ylen)) hmap_put(&antinodes_all, &antipair[1], &antipair[1]);
+
+                    i++;
                 }
             }
         }
     }
 
     printf("%lu\n", hmap_len(&antinodes));
+    printf("%lu\n", hmap_len(&antinodes_all));
 
     /* Close input */
 
     hmap_destroy(&grid);
     hmap_destroy(&antinodes);
     fclose(puzzle);
-}
-
-/*
- * Calculates the position of an antinode.
- * @param a Antenna A
- * @param b Antenna B
- * @param antinodes A list of two coordinate pairs representing the antinodes created by the two antennas.
- */
-void calc_antinodes(const antenna_t *a, const antenna_t *b, coord_t *antinodes) {
-
-    /* Calculate the two vector components of the distance between `a` and `b` */
-
-    int dx = a->pos.x - b->pos.x;
-    int dy = a->pos.y - b->pos.y;
-
-    /* Antinode 1 will be an extension of these vector components from `b` */
-
-    antinodes[0].x = b->pos.x - dx;
-    antinodes[0].y = b->pos.y - dy;
-
-    /* Antinode 2 will be a mirror of antinode 1 */
-
-    antinodes[1].x = a->pos.x + dx;
-    antinodes[1].y = a->pos.y + dy;
 }
