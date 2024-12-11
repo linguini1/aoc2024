@@ -17,6 +17,7 @@ typedef struct {
 } file_t;
 
 size_t checksum(const list_t *filesystem);
+void fine_grain_compact(const list_t *og_files, list_t *compacted);
 
 int main(int argc, char **argv) {
 
@@ -63,11 +64,40 @@ int main(int argc, char **argv) {
         list_append(&files, &file);
     }
 
+    /* Calculate checksum for fine-grain compacted file system */
+
+    list_t fine_grain;
+    fine_grain_compact(&files, &fine_grain);
+    printf("%llu\n", checksum(&fine_grain));
+    list_destroy(&fine_grain);
+
+    /* Calculate checksum for coarse-grain compacted file system */
+
+    /* Close input */
+
+    list_destroy(&files);
+    fclose(puzzle);
+}
+
+/* Compacts the filesystem on a per-block basis (fine-grained).
+ * @param og_files The file system to compact
+ * @param compacted A pointer to an uninitialized list where the compacted file system can be stored. Callers
+ * responsibility to free.
+ */
+void fine_grain_compact(const list_t *og_files, list_t *compacted) {
+
+    /* Create a copy of the original files so we can modify them */
+
+    list_t cpfiles;
+    list_create(&cpfiles, list_getlen(og_files), sizeof(file_t));
+    for (size_t i = 0; i < list_getlen(og_files); i++) {
+        list_append(&cpfiles, list_getindex(og_files, i));
+    }
+
     /* Compact the files */
 
-    list_t compacted;
-    list_create(&compacted, 60, sizeof(file_t));
-    list_append(&compacted, list_getindex(&files, 0)); /* First file goes right in the compacted format */
+    list_create(compacted, 60, sizeof(file_t));
+    list_append(compacted, list_getindex(&cpfiles, 0)); /* First file goes right in the compacted format */
 
     file_t tail = {0};
     file_t *head;
@@ -76,11 +106,11 @@ int main(int argc, char **argv) {
 
         /* Get the next file off the end of the list if we're done with the previous tail */
         if (tail.size == 0) {
-            list_pop(&files, &tail);
+            list_pop(&cpfiles, &tail);
         }
 
         /* Get the last file in the compacted list */
-        head = list_getindex(&compacted, list_getlen(&compacted) - 1);
+        head = list_getindex(compacted, list_getlen(compacted) - 1);
 
         /* If there is no free space at the end of this file, we have to go to the next file to see if it has free space
          * that we can use */
@@ -93,10 +123,10 @@ int main(int argc, char **argv) {
                 break;
             }
 
-            head = list_getindex(&files, last);
+            head = list_getindex(&cpfiles, last);
             if (head == NULL) break;
-            list_append(&compacted, head);
-            head = list_getindex(&compacted, list_getlen(&compacted) - 1); /* Use our copy */
+            list_append(compacted, head);
+            head = list_getindex(compacted, list_getlen(compacted) - 1); /* Use our copy */
         }
         if (head == NULL) break;
 
@@ -121,19 +151,13 @@ int main(int argc, char **argv) {
             tail.size--;       /* Take one block off the tail for the new file */
             file_t newfile = {.id = tail.id, .freespace = head->freespace, .size = 1};
             head->freespace = 0; /* This free space has been inherited by the new file */
-            list_append(&compacted, &newfile);
+            list_append(compacted, &newfile);
         }
     }
 
-    /* Calculate checksum */
+    /* Get rid of the copy */
 
-    printf("%llu\n", checksum(&compacted));
-
-    /* Close input */
-
-    list_destroy(&files);
-    list_destroy(&compacted);
-    fclose(puzzle);
+    list_destroy(&cpfiles);
 }
 
 /* Calculates the checksum for the file system
