@@ -152,3 +152,14 @@ long long list_index(list_t const *list, const void *e) {
     }
     return -1;
 }
+
+/* Pop an element from the end of the list and store it in `e`.
+ * @param list The list to pop from
+ * @param e Where to store the popped element. Pass `NULL` if element can be discarded.
+ */
+void list_pop(list_t *list, void *e) {
+    if (e != NULL) {
+        memcpy(e, (uint8_t *)(list->elements) + ((list->len - 1) * list->elem_size), list->elem_size);
+    }
+    list->len--;
+}
