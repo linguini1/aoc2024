@@ -25,7 +25,8 @@ typedef struct {
 
 static char buffer[BUFSIZ];
 
-void blink(list_t *stones, hmap_t *recipes);
+void blink(hmap_t *stones, hmap_t *recipes);
+void counter_incr_or_create(hmap_t *counter, stone_t *key, size_t val);
 
 int main(int argc, char **argv) {
 
@@ -44,8 +45,8 @@ int main(int argc, char **argv) {
 
     /* Parse input into stones */
 
-    list_t stones;
-    list_create(&stones, 1024, sizeof(stone_t));
+    hmap_t stones;
+    hmap_create(&stones, NULL, 1024, sizeof(stone_t), sizeof(size_t));
 
     stone_t cur;
     for (;;) {
@@ -59,7 +60,10 @@ int main(int argc, char **argv) {
         char *tok = strtok(buffer, " ");
         do {
             cur = strtoul(tok, NULL, 10);
-            list_append(&stones, &cur);
+
+            /* Increase counter of this stone type */
+
+            counter_incr_or_create(&stones, &cur, 1);
             tok = strtok(NULL, " ");
         } while (tok != NULL);
     }
@@ -73,14 +77,19 @@ int main(int argc, char **argv) {
         blink(&stones, &recipes);
     }
 
-    printf("%lu\n", list_getlen(&stones));
+    /* Add up all the counter values */
 
-    for (size_t i = 0; i < NUM_MORE_BLINKS - NUM_BLINKS; i++) {
-        printf("Blink #%lu\n", i);
-        blink(&stones, &recipes);
+    size_t total = 0;
+    size_t j = 0;
+    size_t *count;
+    stone_t *stone;
+
+    while (hmap_iter_pairs(&stones, &j, (void *)&stone, (void *)&count) != NULL) {
+        printf("Stone %lu: %lu\n", *stone, *count);
+        total += *count;
     }
 
-    printf("%lu\n", list_getlen(&stones));
+    printf("%lu\n", total);
 
     /* Close input */
 
@@ -115,27 +124,62 @@ static void split_stone(stone_t *stone, stone_t *remainder) {
     *stone = first_half;
 }
 
+/* Increment the counter associated with `key` if it exists, or start a new counter with initial value `val`.
+ * @param counter The hashmap counter
+ * @param key The key to increment the count for
+ * @param val The initial value of the counter if one doesn't exist yet
+ */
+void counter_incr_or_create(hmap_t *counter, stone_t *key, size_t val) {
+    size_t *count = hmap_get(counter, key);
+    if (count == NULL) {
+        hmap_put(counter, key, &val);
+    } else {
+        *count = *count + 1;
+    }
+}
+
 /* Calculate the result of a blink and update the list.
  * @param stones The current roster of stones
  * @param recipes A place to store stone's states of evolution as they are discovered
  */
-void blink(list_t *stones, hmap_t *recipes) {
+void blink(hmap_t *stones, hmap_t *recipes) {
 
-    size_t len = list_getlen(stones);
+    /* Get a copy of the keys for this iteration */
 
-    /* Iterate over all stones and apply the rules */
+    list_t key_list;
+    list_create(&key_list, hmap_len(stones), sizeof(stone_t));
+
+    size_t k = 0;
+    stone_t *key;
+    while (hmap_iter_keys(stones, &k, (void *)&key)) {
+        list_append(&key_list, key);
+    }
+
+    /* Iterate over all stones in this list and apply the rules */
 
     stone_t *cur;
-    for (size_t i = 0; i < len; i++) {
-        cur = list_getindex(stones, i);
+    size_t *count;
+
+    for (size_t i = 0; i < list_getlen(&key_list); i++) {
+
+        cur = list_getindex(&key_list, i);
+        count = hmap_get(stones, cur);
 
         /* Check if we already know the outcome of this stone's evolution */
 
         recipe_t *recipe = hmap_get(recipes, cur);
         if (recipe != NULL) {
-            *cur = recipe->replace; /* Always update the current stone */
+
+            *count = *count - 1; /* One less of this stone */
+
+            /* Record one more of this stone's replacement */
+
+            counter_incr_or_create(stones, &recipe->replace, 1);
+
             /* If this recipe calls for a new stone, add it */
-            if (recipe->dual) list_append(stones, &recipe->add);
+
+            counter_incr_or_create(stones, &recipe->add, 1);
+
             continue;
         }
 
@@ -144,16 +188,25 @@ void blink(list_t *stones, hmap_t *recipes) {
         if (*cur == 0) {
 
             /* Update the recipe book */
+
             recipe_t newrecipe = {.replace = 1, .dual = false};
             hmap_put(recipes, cur, &newrecipe);
 
-            *cur = 1;
+            /* Update the counter */
+
+            *count = *count - 1; /* One less stone marked 0 */
+
+            /* One more stone marked '1' */
+
+            counter_incr_or_create(stones, &newrecipe.replace, 1);
+
             continue;
         }
 
-        /* If the stone is engraved with a number that has an even number of digits, it is replaced by two stones. The
-         * left half of the digits are engraved on the new left stone, and the right half of the digits are engraved on
-         * the new right stone. (The new numbers don't keep extra leading zeroes: 1000 would become stones 10 and 0.) */
+        /* If the stone is engraved with a number that has an even number of digits, it is replaced by two stones.
+         * The left half of the digits are engraved on the new left stone, and the right half of the digits are
+         * engraved on the new right stone. (The new numbers don't keep extra leading zeroes: 1000 would become
+         * stones 10 and 0.) */
 
         if (num_digits(*cur) % 2 == 0) {
 
@@ -161,23 +214,48 @@ void blink(list_t *stones, hmap_t *recipes) {
 
             /* Calculate the two halves */
 
-            stone_t second_stone;
-            split_stone(cur, &second_stone);
+            recipe_t newrecipe = {.dual = true};
+            newrecipe.replace = *cur;
+            split_stone(&newrecipe.replace, &newrecipe.add);
 
             /* Update the recipe book */
 
-            recipe_t newrecipe = {.replace = *cur, .add = second_stone, .dual = true};
             hmap_put(recipes, &prev_cur, &newrecipe);
 
-            /* Add the new half to the list */
+            /* Reduce the count of the unsplit stone */
 
-            list_append(stones, &second_stone); /* Add the new stone */
+            *count = *count - 1;
+
+            /* Increase the count of the first half */
+
+            counter_incr_or_create(stones, &newrecipe.replace, 1);
+
+            /* Increase the count of the second half */
+
+            counter_incr_or_create(stones, &newrecipe.add, 1);
+
             continue;
         }
 
-        /* If none of the other rules apply, the stone is replaced by a new stone; the old stone's number multiplied by
-         * 2024 is engraved on the new stone. */
+        /* If none of the other rules apply, the stone is replaced by a new stone; the old stone's number multiplied
+         * by 2024 is engraved on the new stone. */
 
-        *cur *= 2024;
+        /* Update recipe book */
+
+        size_t prev = *cur;
+        recipe_t newrecipe = {.replace = prev * 2024, .dual = false};
+        hmap_put(recipes, &prev, &newrecipe);
+
+        /* Decrease the count of the current stone */
+
+        *count = *count - 1;
+
+        /* Increase the count of the replacement stone */
+
+        counter_incr_or_create(stones, &newrecipe.replace, 1);
     }
+
+    /* Destroy the key list */
+
+    list_destroy(&key_list);
 }
