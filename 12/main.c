@@ -25,9 +25,26 @@ typedef struct {
     size_t sides;
 } region_t;
 
+typedef enum {
+    DIR_TOP = 0,
+    DIR_BOTTOM = 1,
+    DIR_LEFT = 2,
+    DIR_RIGHT = 3,
+} direction_e;
+
+typedef struct {
+    int line;        /* Either the x or y component of a coordinate that identifies this side uniquely */
+    direction_e dir; /* The direction of the side relative to the map orientation */
+} side_t;
+
 /* Neighbouring cells represented as vectors */
 
-static const coord_t NEIGHBOURS[] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+static const coord_t NEIGHBOURS[] = {
+    [DIR_BOTTOM] = {0, 1},
+    [DIR_RIGHT] = {1, 0},
+    [DIR_TOP] = {0, -1},
+    [DIR_LEFT] = {-1, 0},
+};
 
 /* Add two coordinates */
 
@@ -146,15 +163,16 @@ int main(int argc, char **argv) {
  * @param region The cells belonging to the region
  * @param xlen The number of columns in the grid
  * @param ylen The number of rows in the grid
+ * @param perimeter A set in which to store the cells belonging to the perimeter
  * @return The perimeter length of the region
  */
-static size_t calculate_perimeter(set_t *region, size_t xlen, size_t ylen) {
+static size_t calculate_perimeter(set_t *region, size_t xlen, size_t ylen, set_t *perimeter) {
 
     /* Iterate over cells in the region and check how many adjacent cells of the same type they have. */
 
-    size_t perimeter = 0;
-    size_t i = 0;
+    size_t perim = 0;
     coord_t *cell;
+    size_t i = 0;
     while (set_iter(region, &i, (void *)&cell) != NULL) {
 
         /* Check this cell's neighbours */
@@ -165,32 +183,83 @@ static size_t calculate_perimeter(set_t *region, size_t xlen, size_t ylen) {
             /* If the neighbour is out of bounds, then the cell has a perimeter on this side */
 
             if (out_of_bounds(combined, xlen, ylen)) {
-                perimeter++;
+                set_add(perimeter, cell);
+                perim++;
                 continue;
             }
 
             /* If the neighbour is not in the region, then the cell has a perimeter on this side */
 
             if (!set_contains(region, &combined)) {
-                perimeter++;
+                set_add(perimeter, cell);
+                perim++;
                 continue;
             }
         }
     }
 
-    return perimeter;
+    return perim;
 }
 
 /* Calculates the number of distinct sides a region has
+ * @param perimeter The cells belonging to the region's perimeter
  * @param region The cells belonging to the region
- * @param xlen The number of columns in the grid
- * @param ylen The number of rows in the grid
  * @return The number of distinct sides in a region
  */
-static size_t calculate_sides(set_t *region, size_t xlen, size_t ylen) {
+static size_t calculate_sides(const set_t *perimeter, const set_t *region) {
 
-    // TODO
-    return 0;
+    /* A side can be defined as a line of cells belonging to the perimeter who either share a common y coordinate
+     * or a common x coordinate.
+     *
+     * EEEEE
+     * E....
+     * EEEEE
+     * E....
+     * EEEEE
+     *
+     * Sides = 12
+     *
+     * Go through each cell in the perimeter.
+     * If it has nothing touching it on the left, add it's left coordinate to the set of unique x coordinates tagged
+     * 'left'
+     * If it has nothing touching it on the left, add it's right coordinate to the set of unique x coordinates tagged
+     * 'right'
+     * If it has nothing touching it on the top, add it's top coordinate to the set of unique y coordinates tagged 'top'
+     * If it has nothing touching it on the bottom, add it's bottom coordinate to the set of unique y coordinates tagged
+     * 'bottom'
+     */
+
+    set_t sides;
+    set_create(&sides, NULL, 128, sizeof(side_t));
+
+    size_t i = 0;
+    coord_t *coord;
+    while (set_iter(perimeter, &i, (void *)&coord) != NULL) {
+
+        /* Check this cell's neighbours */
+
+        for (size_t j = 0; j < sizeof(NEIGHBOURS) / sizeof(NEIGHBOURS[0]); j++) {
+            coord_t combined = coord_add(*coord, combined);
+
+            /* If the neighbour is in the region, it is not part of a side */
+
+            if (set_contains(region, &combined)) {
+                continue;
+            }
+
+            /* If the neighbour is not in the region, it is part of a side */
+
+            side_t side;
+            side.dir = i;
+            if (i == DIR_TOP || i == DIR_BOTTOM) side.line = combined.y;
+            if (i == DIR_LEFT || i == DIR_RIGHT) side.line = combined.x;
+            set_add(&sides, &side);
+        }
+    }
+
+    size_t num_sides = set_len(&sides);
+    set_destroy(&sides);
+    return num_sides;
 }
 
 /* Floods a region from a starting point, recording all of the coordinates visited.
@@ -263,7 +332,7 @@ void record_region(coord_t start, list_t *grid, size_t xlen, size_t ylen, list_t
     /* Start flooding from the start location and fill up the set of cells belonging to the region */
 
     set_t region_cells;
-    set_create(&region_cells, NULL, BUFSIZ, sizeof(coord_t));
+    set_create(&region_cells, NULL, 2048, sizeof(coord_t));
 
     /* Flood out the region! */
 
@@ -271,15 +340,18 @@ void record_region(coord_t start, list_t *grid, size_t xlen, size_t ylen, list_t
 
     /* Calculate the perimeter of the region */
 
+    set_t perimeter;
+    set_create(&perimeter, NULL, 1024, sizeof(coord_t));
     region_t region = {
         .area = set_len(&region_cells),
-        .perimeter = calculate_perimeter(&region_cells, xlen, ylen),
-        .sides = calculate_sides(&region_cells, xlen, ylen),
+        .perimeter = calculate_perimeter(&region_cells, xlen, ylen, &perimeter),
+        .sides = calculate_sides(&perimeter, &region_cells),
         .type = deref(char, list_getindex(grid, start.y * ylen + start.x)),
     };
 
     /* Free the coordinates now that we're done with them */
 
+    set_destroy(&perimeter);
     set_destroy(&region_cells);
 
     /* Add the new region to the registry */
