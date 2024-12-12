@@ -227,30 +227,7 @@ static void flood_perim(side_t start, set_t *perimperim, set_t *visited) {
  * @param perimeter The cells belonging to the region's perimeter
  * @return The number of distinct sides in a region
  */
-static size_t calculate_sides(const set_t *perimeter) {
-
-    /*
-     * EEEEE
-     * E....
-     * EEEEE
-     * E....
-     * EEEEE
-     *
-     *  -----
-     * |EEEEE|
-     * |E----
-     * |EEEEE|
-     * |E----
-     * |EEEEE|
-     *  -----
-     *
-     * EEEEE
-     * E...E
-     * EEEEE
-     * E..EE
-     * EEEEE
-     *
-     */
+static size_t calculate_sides(const set_t *perimeter, const set_t *region) {
 
     size_t sides = 0;
 
@@ -268,9 +245,9 @@ static size_t calculate_sides(const set_t *perimeter) {
         for (size_t j = 0; j < sizeof(NEIGHBOURS) / sizeof(NEIGHBOURS[0]); j++) {
             coord_t combined = coord_add(*cell, NEIGHBOURS[j]);
 
-            /* If the neighbour is not in the perimeter, then the cell has a perimeter^2 on this side */
+            /* If the neighbour is not in the region, then the cell has a perimeter^2 on this side */
 
-            if (!set_contains(perimeter, &combined)) {
+            if (!set_contains(region, &combined)) {
                 side_t side = {.pos = *cell, .dir = j};
                 set_add(&perimperim, &side);
                 continue;
@@ -395,7 +372,7 @@ void record_region(coord_t start, list_t *grid, size_t xlen, size_t ylen, list_t
     region_t region = {
         .area = set_len(&region_cells),
         .perimeter = calculate_perimeter(&region_cells, xlen, ylen, &perimeter),
-        .sides = calculate_sides(&perimeter),
+        .sides = calculate_sides(&perimeter, &region_cells),
         .type = deref(char, list_getindex(grid, start.y * ylen + start.x)),
     };
 
