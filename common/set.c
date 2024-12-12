@@ -229,3 +229,28 @@ int set_contains(set_t const *set, const void *elem) {
     /* We looped until we wrapped back around and found nothing */
     return 0;
 }
+
+/* Iterate over elements in the set.
+ * @param set The set to iterate over
+ * @param i Contains state between calls. Pass with initial value of 0.
+ * @param elem A pointer to where to store the reference to the current element
+ * @return NULL when all values have been iterated over, same pointer as in `elem` otherwise.
+ */
+void *set_iter(set_t const *set, size_t *i, void **elem) {
+    uint8_t *state;
+    void *cur;
+
+    for (; *i < set->capacity; (*i)++) {
+
+        /* If something is in this slot, return it */
+
+        cur = get_slot(set, *i, &state);
+        if (*state == SLOT_OCC) {
+            *elem = cur;
+            (*i)++;
+            return elem;
+        }
+    }
+
+    return NULL;
+}

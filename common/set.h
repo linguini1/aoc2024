@@ -22,5 +22,6 @@ size_t set_len(set_t const *set);
 void set_add(set_t *set, const void *elem);
 void set_remove(set_t *set, const void *elem);
 int set_contains(set_t const *set, const void *elem);
+void *set_iter(set_t const *set, size_t *i, void **elem);
 
 #endif // _SET_H_
