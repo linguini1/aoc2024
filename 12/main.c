@@ -22,6 +22,7 @@ typedef struct {
     char type;
     size_t area;
     size_t perimeter;
+    size_t sides;
 } region_t;
 
 /* Neighbouring cells represented as vectors */
@@ -122,13 +123,16 @@ int main(int argc, char **argv) {
 
     /* Print out all of the regions in the registry */
 
-    size_t total = 0;
+    size_t normie_price = 0;
+    size_t bulk_price = 0;
     for (size_t i = 0; i < list_getlen(&registry); i++) {
         region_t *region = list_getindex(&registry, i);
         /*printf("Region(type=%c, area=%lu, perimeter=%lu)\n", region->type, region->area, region->perimeter);*/
-        total += region->area * region->perimeter;
+        normie_price += region->area * region->perimeter;
+        bulk_price += region->area * region->sides;
     }
-    printf("%lu\n", total);
+    printf("%lu\n", normie_price);
+    printf("%lu\n", bulk_price);
 
     /* Close input */
 
@@ -142,6 +146,7 @@ int main(int argc, char **argv) {
  * @param region The cells belonging to the region
  * @param xlen The number of columns in the grid
  * @param ylen The number of rows in the grid
+ * @return The perimeter length of the region
  */
 static size_t calculate_perimeter(set_t *region, size_t xlen, size_t ylen) {
 
@@ -174,6 +179,18 @@ static size_t calculate_perimeter(set_t *region, size_t xlen, size_t ylen) {
     }
 
     return perimeter;
+}
+
+/* Calculates the number of distinct sides a region has
+ * @param region The cells belonging to the region
+ * @param xlen The number of columns in the grid
+ * @param ylen The number of rows in the grid
+ * @return The number of distinct sides in a region
+ */
+static size_t calculate_sides(set_t *region, size_t xlen, size_t ylen) {
+
+    // TODO
+    return 0;
 }
 
 /* Floods a region from a starting point, recording all of the coordinates visited.
@@ -257,6 +274,7 @@ void record_region(coord_t start, list_t *grid, size_t xlen, size_t ylen, list_t
     region_t region = {
         .area = set_len(&region_cells),
         .perimeter = calculate_perimeter(&region_cells, xlen, ylen),
+        .sides = calculate_sides(&region_cells, xlen, ylen),
         .type = deref(char, list_getindex(grid, start.y * ylen + start.x)),
     };
 
