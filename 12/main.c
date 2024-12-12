@@ -278,8 +278,6 @@ static size_t calculate_sides(const set_t *perimeter) {
         }
     }
 
-    printf("Perimeter^2 calculated\n");
-
     /* Pick a random point on the perimeter^2, flood it to find all its members. Record these members in a visited set.
      * Increment the edge count by one.
      * Then remove them all from the perimeter^2 set. Repeat until perimeter set is empty.
@@ -287,21 +285,18 @@ static size_t calculate_sides(const set_t *perimeter) {
 
     while (set_len(&perimperim) != 0) {
 
-        printf("Perimeter^2 %lu remaining\n", set_len(&perimperim));
         set_t visited;
         set_create(&visited, NULL, 256, sizeof(side_t));
 
         size_t start_i = 0;
         side_t *start = set_iter(&perimperim, &start_i, NULL);
 
-        printf("Flooding from (%d, %d) -> %s\n", start->pos.x, start->pos.y, DIRSTR[start->dir]);
         flood_perim(*start, &perimperim, &visited);
 
         /* Remove all visited cells */
 
         start_i = 0;
         while (set_iter(&visited, &start_i, (void *)&start) != NULL) {
-            printf("Removing (%d, %d) -> %s\n", start->pos.x, start->pos.y, DIRSTR[start->dir]);
             set_remove(&perimperim, start);
         }
 
