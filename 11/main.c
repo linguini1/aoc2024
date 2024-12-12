@@ -7,17 +7,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../common/hashmap.h"
 #include "../common/list.h"
 
 #define deref(type, thing) (*((type *)(thing)))
 #define NUM_BLINKS 25
+#define NUM_MORE_BLINKS 75
 
 typedef size_t stone_t;
 
+/* A recipe for a stone's evolution */
+typedef struct {
+    stone_t replace; /* A stone to replace the current stone with */
+    stone_t add;     /* A new stone to add to the list */
+    bool dual;       /* If the stone's add field is valid */
+} recipe_t;
+
 static char buffer[BUFSIZ];
 
-void blink(list_t *stones);
-static void split_stone(stone_t *stone, stone_t *remainder); // TODO remove
+void blink(list_t *stones, hmap_t *recipes);
 
 int main(int argc, char **argv) {
 
@@ -56,8 +64,20 @@ int main(int argc, char **argv) {
         } while (tok != NULL);
     }
 
+    /* Create a hashmap of recipes to cache what each rock's evolution is */
+
+    hmap_t recipes;
+    hmap_create(&recipes, NULL, 2048, sizeof(stone_t), sizeof(recipe_t));
+
     for (size_t i = 0; i < NUM_BLINKS; i++) {
-        blink(&stones);
+        blink(&stones, &recipes);
+    }
+
+    printf("%lu\n", list_getlen(&stones));
+
+    for (size_t i = 0; i < NUM_MORE_BLINKS - NUM_BLINKS; i++) {
+        printf("Blink #%lu\n", i);
+        blink(&stones, &recipes);
     }
 
     printf("%lu\n", list_getlen(&stones));
@@ -97,8 +117,9 @@ static void split_stone(stone_t *stone, stone_t *remainder) {
 
 /* Calculate the result of a blink and update the list.
  * @param stones The current roster of stones
+ * @param recipes A place to store stone's states of evolution as they are discovered
  */
-void blink(list_t *stones) {
+void blink(list_t *stones, hmap_t *recipes) {
 
     size_t len = list_getlen(stones);
 
@@ -108,9 +129,24 @@ void blink(list_t *stones) {
     for (size_t i = 0; i < len; i++) {
         cur = list_getindex(stones, i);
 
+        /* Check if we already know the outcome of this stone's evolution */
+
+        recipe_t *recipe = hmap_get(recipes, cur);
+        if (recipe != NULL) {
+            *cur = recipe->replace; /* Always update the current stone */
+            /* If this recipe calls for a new stone, add it */
+            if (recipe->dual) list_append(stones, &recipe->add);
+            continue;
+        }
+
         /* If the stone is engraved with the number 0, it is replaced by a stone engraved with the number 1. */
 
         if (*cur == 0) {
+
+            /* Update the recipe book */
+            recipe_t newrecipe = {.replace = 1, .dual = false};
+            hmap_put(recipes, cur, &newrecipe);
+
             *cur = 1;
             continue;
         }
@@ -120,8 +156,21 @@ void blink(list_t *stones) {
          * the new right stone. (The new numbers don't keep extra leading zeroes: 1000 would become stones 10 and 0.) */
 
         if (num_digits(*cur) % 2 == 0) {
+
+            stone_t prev_cur = *cur; /* Save for recipe book */
+
+            /* Calculate the two halves */
+
             stone_t second_stone;
             split_stone(cur, &second_stone);
+
+            /* Update the recipe book */
+
+            recipe_t newrecipe = {.replace = *cur, .add = second_stone, .dual = true};
+            hmap_put(recipes, &prev_cur, &newrecipe);
+
+            /* Add the new half to the list */
+
             list_append(stones, &second_stone); /* Add the new stone */
             continue;
         }
