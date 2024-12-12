@@ -164,12 +164,12 @@ void blink(hmap_t *stones, hmap_t *recipes) {
 
     stone_t *cur;
     size_t *count;
-    size_t *real_count;
+    size_t *round_count;
 
     for (size_t i = 0; i < list_getlen(&key_list); i++) {
 
         cur = list_getindex(&key_list, i);
-        real_count = list_getindex(&count_list, i);
+        round_count = list_getindex(&count_list, i);
         count = hmap_get(stones, cur);
         if (*count == 0) continue; /* Skip stones that we have seen but aren't in this round */
 
@@ -178,15 +178,15 @@ void blink(hmap_t *stones, hmap_t *recipes) {
         recipe_t *recipe = hmap_get(recipes, cur);
         if (recipe != NULL) {
 
-            *count = 0; /* All stones just converted */
+            *count -= *round_count; /* All stones just converted */
 
             /* Record more of this stone's replacement */
 
-            counter_incr_or_create(stones, &recipe->replace, *real_count);
+            counter_incr_or_create(stones, &recipe->replace, *round_count);
 
             /* If this recipe calls for a new stone, add it */
 
-            counter_incr_or_create(stones, &recipe->add, *real_count);
+            counter_incr_or_create(stones, &recipe->add, *round_count);
 
             continue;
         }
@@ -202,11 +202,11 @@ void blink(hmap_t *stones, hmap_t *recipes) {
 
             /* Update the counter */
 
-            *count = 0; /* All stones marked 0 are converted */
+            *count -= *round_count; /* All stones just converted */
 
             /* All 0 stones became '1' stones */
 
-            counter_incr_or_create(stones, &newrecipe.replace, *real_count);
+            counter_incr_or_create(stones, &newrecipe.replace, *round_count);
 
             continue;
         }
@@ -229,18 +229,15 @@ void blink(hmap_t *stones, hmap_t *recipes) {
             /* Update the recipe book */
 
             hmap_put(recipes, &prev_cur, &newrecipe);
-
-            /* Reduce the count of the unsplit stone */
-
-            *count = 0;
+            *count -= *round_count; /* All stones just converted */
 
             /* Increase the count of the first half */
 
-            counter_incr_or_create(stones, &newrecipe.replace, *real_count);
+            counter_incr_or_create(stones, &newrecipe.replace, *round_count);
 
             /* Increase the count of the second half */
 
-            counter_incr_or_create(stones, &newrecipe.add, *real_count);
+            counter_incr_or_create(stones, &newrecipe.add, *round_count);
 
             continue;
         }
@@ -254,13 +251,11 @@ void blink(hmap_t *stones, hmap_t *recipes) {
         recipe_t newrecipe = {.replace = prev * 2024, .dual = false};
         hmap_put(recipes, &prev, &newrecipe);
 
-        /* Decrease the count of the current stone */
-
-        *count = 0;
+        *count -= *round_count; /* All stones just converted */
 
         /* Increase the count of the replacement stone */
 
-        counter_incr_or_create(stones, &newrecipe.replace, *real_count);
+        counter_incr_or_create(stones, &newrecipe.replace, *round_count);
     }
 
     /* Destroy the count list */
