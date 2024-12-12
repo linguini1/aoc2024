@@ -11,8 +11,7 @@
 #include "../common/list.h"
 
 #define deref(type, thing) (*((type *)(thing)))
-#define NUM_BLINKS 25
-#define NUM_MORE_BLINKS 75
+#define DEFAULT_NUM_BLINKS 25
 
 typedef size_t stone_t;
 
@@ -25,14 +24,21 @@ typedef struct {
 
 static char buffer[BUFSIZ];
 
+static size_t num_blinks = DEFAULT_NUM_BLINKS;
+
 void blink(hmap_t *stones, hmap_t *recipes);
 void counter_incr_or_create(hmap_t *counter, stone_t *key, size_t val);
 
 int main(int argc, char **argv) {
 
-    if (argc != 2) {
+    if (argc < 2) {
         fprintf(stderr, "Provide the name of the file to use as puzzle input.\n");
         return EXIT_FAILURE;
+    }
+
+    /* We passed in the blink number */
+    if (argc == 3) {
+        num_blinks = strtoul(argv[2], NULL, 10);
     }
 
     /* Open the puzzle input */
@@ -46,7 +52,7 @@ int main(int argc, char **argv) {
     /* Parse input into stones */
 
     hmap_t stones;
-    hmap_create(&stones, NULL, 1024, sizeof(stone_t), sizeof(size_t));
+    hmap_create(&stones, NULL, BUFSIZ, sizeof(stone_t), sizeof(size_t));
 
     stone_t cur;
     for (;;) {
@@ -71,9 +77,9 @@ int main(int argc, char **argv) {
     /* Create a hashmap of recipes to cache what each rock's evolution is */
 
     hmap_t recipes;
-    hmap_create(&recipes, NULL, 2048, sizeof(stone_t), sizeof(recipe_t));
+    hmap_create(&recipes, NULL, BUFSIZ, sizeof(stone_t), sizeof(recipe_t));
 
-    for (size_t i = 0; i < NUM_BLINKS; i++) {
+    for (size_t i = 0; i < num_blinks; i++) {
         blink(&stones, &recipes);
     }
 
