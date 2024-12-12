@@ -99,6 +99,8 @@ int main(int argc, char **argv) {
 
     /* Close input */
 
+    hmap_destroy(&stones);
+    hmap_destroy(&recipes);
     fclose(puzzle);
 }
 
