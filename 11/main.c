@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     hmap_t recipes;
     hmap_create(&recipes, NULL, 2048, sizeof(stone_t), sizeof(recipe_t));
 
-    for (size_t i = 0; i < 4; i++) {
+    for (size_t i = 0; i < NUM_BLINKS; i++) {
         blink(&stones, &recipes);
     }
 
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     stone_t *stone;
 
     while (hmap_iter_pairs(&stones, &j, (void *)&stone, (void *)&count) != NULL) {
-        if (*count != 0) printf("Stone %lu: %lu\n", *stone, *count);
+        /*if (*count != 0) printf("Stone %lu: %lu\n", *stone, *count);*/
         total += *count;
     }
 
@@ -162,18 +162,12 @@ void blink(hmap_t *stones, hmap_t *recipes) {
         }
     }
 
-    printf("Round keys:\n");
-    for (size_t i = 0; i < list_getlen(&key_list); i++) {
-        printf("(%lu, %lu), ", deref(stone_t, list_getindex(&key_list, i)),
-               deref(size_t, list_getindex(&count_list, i)));
-    }
-    printf("\n");
-
     /* Iterate over all stones in this list and apply the rules */
 
     stone_t *cur;
     size_t *count;
     size_t *round_count;
+    recipe_t *recipe;
 
     for (size_t i = 0; i < list_getlen(&key_list); i++) {
 
@@ -184,7 +178,7 @@ void blink(hmap_t *stones, hmap_t *recipes) {
 
         /* Check if we already know the outcome of this stone's evolution */
 
-        recipe_t *recipe = hmap_get(recipes, cur);
+        recipe = hmap_get(recipes, cur);
         if (recipe != NULL) {
 
             *count = *count - *round_count; /* All stones just converted */
@@ -195,7 +189,7 @@ void blink(hmap_t *stones, hmap_t *recipes) {
 
             /* If this recipe calls for a new stone, add it */
 
-            counter_incr_or_create(stones, &recipe->add, *round_count);
+            if (recipe->dual) counter_incr_or_create(stones, &recipe->add, *round_count);
 
             continue;
         }
