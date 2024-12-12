@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     hmap_t recipes;
     hmap_create(&recipes, NULL, 2048, sizeof(stone_t), sizeof(recipe_t));
 
-    for (size_t i = 0; i < 3; i++) {
+    for (size_t i = 0; i < 4; i++) {
         blink(&stones, &recipes);
     }
 
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     stone_t *stone;
 
     while (hmap_iter_pairs(&stones, &j, (void *)&stone, (void *)&count) != NULL) {
-        printf("Stone %lu: %lu\n", *stone, *count);
+        if (*count != 0) printf("Stone %lu: %lu\n", *stone, *count);
         total += *count;
     }
 
@@ -147,18 +147,27 @@ void blink(hmap_t *stones, hmap_t *recipes) {
     /* Get a copy of the entries for this iteration */
 
     list_t key_list;
-    list_create(&key_list, hmap_len(stones), sizeof(stone_t));
+    list_create(&key_list, 100, sizeof(stone_t));
 
     list_t count_list;
-    list_create(&count_list, hmap_len(stones), sizeof(stone_t));
+    list_create(&count_list, 100, sizeof(size_t));
 
     size_t k = 0;
     stone_t *key;
     size_t *old_count;
     while (hmap_iter_pairs(stones, &k, (void *)&key, (void *)&old_count)) {
-        list_append(&key_list, key);
-        list_append(&count_list, old_count);
+        if (*old_count != 0) {
+            list_append(&key_list, key);
+            list_append(&count_list, old_count);
+        }
     }
+
+    printf("Round keys:\n");
+    for (size_t i = 0; i < list_getlen(&key_list); i++) {
+        printf("(%lu, %lu), ", deref(stone_t, list_getindex(&key_list, i)),
+               deref(size_t, list_getindex(&count_list, i)));
+    }
+    printf("\n");
 
     /* Iterate over all stones in this list and apply the rules */
 
@@ -178,7 +187,7 @@ void blink(hmap_t *stones, hmap_t *recipes) {
         recipe_t *recipe = hmap_get(recipes, cur);
         if (recipe != NULL) {
 
-            *count -= *round_count; /* All stones just converted */
+            *count = *count - *round_count; /* All stones just converted */
 
             /* Record more of this stone's replacement */
 
@@ -202,7 +211,7 @@ void blink(hmap_t *stones, hmap_t *recipes) {
 
             /* Update the counter */
 
-            *count -= *round_count; /* All stones just converted */
+            *count = *count - *round_count; /* All stones just converted */
 
             /* All 0 stones became '1' stones */
 
@@ -229,7 +238,7 @@ void blink(hmap_t *stones, hmap_t *recipes) {
             /* Update the recipe book */
 
             hmap_put(recipes, &prev_cur, &newrecipe);
-            *count -= *round_count; /* All stones just converted */
+            *count = *count - *round_count; /* All stones just converted */
 
             /* Increase the count of the first half */
 
@@ -251,7 +260,7 @@ void blink(hmap_t *stones, hmap_t *recipes) {
         recipe_t newrecipe = {.replace = prev * 2024, .dual = false};
         hmap_put(recipes, &prev, &newrecipe);
 
-        *count -= *round_count; /* All stones just converted */
+        *count = *count - *round_count; /* All stones just converted */
 
         /* Increase the count of the replacement stone */
 
