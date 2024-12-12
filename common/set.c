@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <stdio.h> // TODO remove
 #include <string.h>
 
 #include "set.h"
@@ -175,7 +174,7 @@ void set_remove(set_t *set, const void *elem) {
 
         /* If an empty slot was found, end here because it means nothing was ever here */
 
-        if (*state == SLOT_DEL) return;
+        if (*state == SLOT_EMPTY) return;
 
         /* A matching element was found, delete it */
 

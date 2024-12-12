@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h> // TODO remove
 
 #include "../common/list.h"
 #include "../common/set.h"
@@ -34,9 +33,8 @@ typedef enum {
 } direction_e;
 
 typedef struct {
-    int line;        /* Either the x or y component of a coordinate that identifies this side uniquely */
-    direction_e dir; /* The direction of the side relative to the map orientation */
-    size_t count;    /* How many unique times this side appears */
+    direction_e dir;
+    coord_t pos;
 } side_t;
 
 /* Neighbouring cells represented as vectors */
@@ -210,6 +208,21 @@ static size_t calculate_perimeter(set_t *region, size_t xlen, size_t ylen, set_t
     return perim;
 }
 
+static void flood_perim(side_t start, set_t *perimperim, set_t *visited) {
+
+    set_add(visited, &start);
+
+    for (size_t i = 0; i < sizeof(NEIGHBOURS) / sizeof(NEIGHBOURS[0]); i++) {
+        side_t next;
+        next.pos = coord_add(start.pos, NEIGHBOURS[i]);
+        next.dir = start.dir;
+
+        if (!set_contains(visited, &next) && set_contains(perimperim, &next)) {
+            flood_perim(next, perimperim, visited);
+        }
+    }
+}
+
 /* Calculates the number of distinct sides a region has
  * @param perimeter The cells belonging to the region's perimeter
  * @return The number of distinct sides in a region
@@ -217,74 +230,90 @@ static size_t calculate_perimeter(set_t *region, size_t xlen, size_t ylen, set_t
 static size_t calculate_sides(const set_t *perimeter) {
 
     /*
-     * Use the maze algorithm to figure out how many sides there are to the perimeter.
+     * EEEEE
+     * E....
+     * EEEEE
+     * E....
+     * EEEEE
      *
-     * The maze algorithm is for those lost in a maze. You run your right hand along the wall and move forward until you
-     * reach the end of the maze.
+     *  -----
+     * |EEEEE|
+     * |E----
+     * |EEEEE|
+     * |E----
+     * |EEEEE|
+     *  -----
      *
-     * In this case, we pick a random starting point, move along the perimeter, and each right turn is an additional
-     * side discovered.
+     * EEEEE
+     * E...E
+     * EEEEE
+     * E..EE
+     * EEEEE
+     *
      */
-
-    /* Get the first element in the set to start at */
-
-    size_t start_i = 0;
-    coord_t start = deref(coord_t, set_iter(perimeter, &start_i, NULL));
-    coord_t current = start;
-    direction_e start_heading;
-    direction_e heading;
-
-    printf("Perimeter len: %lu\n", set_len(perimeter));
-
-    /* Choose our start direction based on the first adjacent perimeter cell */
-
-    for (size_t i = 0; i < sizeof(NEIGHBOURS) / sizeof(NEIGHBOURS[0]); i++) {
-        coord_t combined = coord_add(start, NEIGHBOURS[i]);
-        if (set_contains(perimeter, &combined)) {
-            start_heading = i;
-            break;
-        }
-    }
-    heading = start_heading;
-
-    /* Continue going around the perimeter until we end up back at the start and try to repeat directions */
 
     size_t sides = 0;
 
-    do {
+    /* Calculate the perimeter of this perimeter */
 
-        printf("Currently (%d, %d) -> %s\n", current.x, current.y, DIRSTR[heading]);
-        usleep(10000);
-        coord_t next = coord_add(current, NEIGHBOURS[heading]);
+    set_t perimperim;
+    set_create(&perimperim, NULL, 256, sizeof(side_t));
 
-        /* Next location is not in the perimeter, turn right */
+    coord_t *cell;
+    size_t i = 0;
+    while (set_iter(perimeter, &i, (void *)&cell) != NULL) {
 
-        if (!set_contains(perimeter, &next)) {
-            switch (heading) {
-            case DIR_NORTH:
-                heading = DIR_EAST;
-                break;
-            case DIR_EAST:
-                heading = DIR_SOUTH;
-                break;
-            case DIR_SOUTH:
-                heading = DIR_WEST;
-                break;
-            case DIR_WEST:
-                heading = DIR_NORTH;
-                break;
+        /* Check this cell's neighbours */
+
+        for (size_t j = 0; j < sizeof(NEIGHBOURS) / sizeof(NEIGHBOURS[0]); j++) {
+            coord_t combined = coord_add(*cell, NEIGHBOURS[j]);
+
+            /* If the neighbour is not in the perimeter, then the cell has a perimeter^2 on this side */
+
+            if (!set_contains(perimeter, &combined)) {
+                side_t side = {.pos = *cell, .dir = j};
+                set_add(&perimperim, &side);
+                continue;
             }
-            sides++;  /* Increment the number of sides found */
-            continue; /* Try again with new heading */
+        }
+    }
+
+    printf("Perimeter^2 calculated\n");
+
+    /* Pick a random point on the perimeter^2, flood it to find all its members. Record these members in a visited set.
+     * Increment the edge count by one.
+     * Then remove them all from the perimeter^2 set. Repeat until perimeter set is empty.
+     */
+
+    while (set_len(&perimperim) != 0) {
+
+        printf("Perimeter^2 %lu remaining\n", set_len(&perimperim));
+        set_t visited;
+        set_create(&visited, NULL, 256, sizeof(side_t));
+
+        size_t start_i = 0;
+        side_t *start = set_iter(&perimperim, &start_i, NULL);
+
+        printf("Flooding from (%d, %d) -> %s\n", start->pos.x, start->pos.y, DIRSTR[start->dir]);
+        flood_perim(*start, &perimperim, &visited);
+
+        /* Remove all visited cells */
+
+        start_i = 0;
+        while (set_iter(&visited, &start_i, (void *)&start) != NULL) {
+            printf("Removing (%d, %d) -> %s\n", start->pos.x, start->pos.y, DIRSTR[start->dir]);
+            set_remove(&perimperim, start);
         }
 
-        /* Next location is in the perimeter, go there */
+        sides++; /* This means there's been another side */
 
-        current = next;
+        /* Destroy visited set for it to be reborn. */
 
-    } while (!(start.x == current.x && start.y == current.y && heading == start_heading));
+        set_destroy(&visited);
+    }
 
-    printf("Sides: %lu\n", sides);
+    set_destroy(&perimperim);
+
     return sides;
 }
 
