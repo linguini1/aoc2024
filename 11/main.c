@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     hmap_t recipes;
     hmap_create(&recipes, NULL, 2048, sizeof(stone_t), sizeof(recipe_t));
 
-    for (size_t i = 0; i < NUM_BLINKS; i++) {
+    for (size_t i = 0; i < 2; i++) {
         blink(&stones, &recipes);
     }
 
@@ -164,6 +164,7 @@ void blink(hmap_t *stones, hmap_t *recipes) {
 
         cur = list_getindex(&key_list, i);
         count = hmap_get(stones, cur);
+        if (*count == 0) continue; /* Skip stones that we have seen but aren't in this round */
 
         /* Check if we already know the outcome of this stone's evolution */
 
