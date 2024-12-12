@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h> // TODO remove
 
 #include "../common/list.h"
 #include "../common/set.h"
@@ -26,24 +27,32 @@ typedef struct {
 } region_t;
 
 typedef enum {
-    DIR_TOP = 0,
-    DIR_BOTTOM = 1,
-    DIR_LEFT = 2,
-    DIR_RIGHT = 3,
+    DIR_NORTH = 0,
+    DIR_SOUTH = 1,
+    DIR_WEST = 2,
+    DIR_EAST = 3,
 } direction_e;
 
 typedef struct {
     int line;        /* Either the x or y component of a coordinate that identifies this side uniquely */
     direction_e dir; /* The direction of the side relative to the map orientation */
+    size_t count;    /* How many unique times this side appears */
 } side_t;
 
 /* Neighbouring cells represented as vectors */
 
 static const coord_t NEIGHBOURS[] = {
-    [DIR_BOTTOM] = {0, 1},
-    [DIR_RIGHT] = {1, 0},
-    [DIR_TOP] = {0, -1},
-    [DIR_LEFT] = {-1, 0},
+    [DIR_SOUTH] = {.x = 0, .y = 1},
+    [DIR_NORTH] = {.x = 0, .y = -1},
+    [DIR_WEST] = {.x = -1, .y = 0},
+    [DIR_EAST] = {.x = 1, .y = 0},
+};
+
+static const char *DIRSTR[] = {
+    [DIR_SOUTH] = "SOUTH",
+    [DIR_NORTH] = "NORTH",
+    [DIR_WEST] = "WEST",
+    [DIR_EAST] = "EAST",
 };
 
 /* Add two coordinates */
@@ -203,63 +212,80 @@ static size_t calculate_perimeter(set_t *region, size_t xlen, size_t ylen, set_t
 
 /* Calculates the number of distinct sides a region has
  * @param perimeter The cells belonging to the region's perimeter
- * @param region The cells belonging to the region
  * @return The number of distinct sides in a region
  */
-static size_t calculate_sides(const set_t *perimeter, const set_t *region) {
+static size_t calculate_sides(const set_t *perimeter) {
 
-    /* A side can be defined as a line of cells belonging to the perimeter who either share a common y coordinate
-     * or a common x coordinate.
+    /*
+     * Use the maze algorithm to figure out how many sides there are to the perimeter.
      *
-     * EEEEE
-     * E....
-     * EEEEE
-     * E....
-     * EEEEE
+     * The maze algorithm is for those lost in a maze. You run your right hand along the wall and move forward until you
+     * reach the end of the maze.
      *
-     * Sides = 12
-     *
-     * Go through each cell in the perimeter.
-     * If it has nothing touching it on the left, add it's left coordinate to the set of unique x coordinates tagged
-     * 'left'
-     * If it has nothing touching it on the left, add it's right coordinate to the set of unique x coordinates tagged
-     * 'right'
-     * If it has nothing touching it on the top, add it's top coordinate to the set of unique y coordinates tagged 'top'
-     * If it has nothing touching it on the bottom, add it's bottom coordinate to the set of unique y coordinates tagged
-     * 'bottom'
+     * In this case, we pick a random starting point, move along the perimeter, and each right turn is an additional
+     * side discovered.
      */
 
-    set_t sides;
-    set_create(&sides, NULL, 128, sizeof(side_t));
+    /* Get the first element in the set to start at */
 
-    size_t i = 0;
-    coord_t *coord;
-    while (set_iter(perimeter, &i, (void *)&coord) != NULL) {
+    size_t start_i = 0;
+    coord_t start = deref(coord_t, set_iter(perimeter, &start_i, NULL));
+    coord_t current = start;
+    direction_e start_heading;
+    direction_e heading;
 
-        /* Check this cell's neighbours */
+    printf("Perimeter len: %lu\n", set_len(perimeter));
 
-        for (size_t j = 0; j < sizeof(NEIGHBOURS) / sizeof(NEIGHBOURS[0]); j++) {
-            coord_t combined = coord_add(*coord, combined);
+    /* Choose our start direction based on the first adjacent perimeter cell */
 
-            /* If the neighbour is in the region, it is not part of a side */
-
-            if (set_contains(region, &combined)) {
-                continue;
-            }
-
-            /* If the neighbour is not in the region, it is part of a side */
-
-            side_t side;
-            side.dir = i;
-            if (i == DIR_TOP || i == DIR_BOTTOM) side.line = combined.y;
-            if (i == DIR_LEFT || i == DIR_RIGHT) side.line = combined.x;
-            set_add(&sides, &side);
+    for (size_t i = 0; i < sizeof(NEIGHBOURS) / sizeof(NEIGHBOURS[0]); i++) {
+        coord_t combined = coord_add(start, NEIGHBOURS[i]);
+        if (set_contains(perimeter, &combined)) {
+            start_heading = i;
+            break;
         }
     }
+    heading = start_heading;
 
-    size_t num_sides = set_len(&sides);
-    set_destroy(&sides);
-    return num_sides;
+    /* Continue going around the perimeter until we end up back at the start and try to repeat directions */
+
+    size_t sides = 0;
+
+    do {
+
+        printf("Currently (%d, %d) -> %s\n", current.x, current.y, DIRSTR[heading]);
+        usleep(10000);
+        coord_t next = coord_add(current, NEIGHBOURS[heading]);
+
+        /* Next location is not in the perimeter, turn right */
+
+        if (!set_contains(perimeter, &next)) {
+            switch (heading) {
+            case DIR_NORTH:
+                heading = DIR_EAST;
+                break;
+            case DIR_EAST:
+                heading = DIR_SOUTH;
+                break;
+            case DIR_SOUTH:
+                heading = DIR_WEST;
+                break;
+            case DIR_WEST:
+                heading = DIR_NORTH;
+                break;
+            }
+            sides++;  /* Increment the number of sides found */
+            continue; /* Try again with new heading */
+        }
+
+        /* Next location is in the perimeter, go there */
+
+        current = next;
+
+    } while (!(start.x == current.x && start.y == current.y && heading == start_heading));
+
+    printf("Sides: %lu\n", sides);
+    return sides;
 }
 
 /* Floods a region from a starting point, recording all of the coordinates visited.
@@ -345,7 +371,7 @@ void record_region(coord_t start, list_t *grid, size_t xlen, size_t ylen, list_t
     region_t region = {
         .area = set_len(&region_cells),
         .perimeter = calculate_perimeter(&region_cells, xlen, ylen, &perimeter),
-        .sides = calculate_sides(&perimeter, &region_cells),
+        .sides = calculate_sides(&perimeter),
         .type = deref(char, list_getindex(grid, start.y * ylen + start.x)),
     };
 
