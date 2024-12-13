@@ -12,6 +12,7 @@
 
 #define A_COST 3
 #define B_COST 1
+#define UNIT_ERROR 10000000000000
 
 typedef struct {
     int64_t x;
@@ -122,6 +123,17 @@ int main(int argc, char **argv) {
     }
 
     printf("%zu\n", total);
+
+    /* Calculate the total after the unit issue */
+
+    total = 0;
+    for (size_t i = 0; i < list_len(&machines); i++) {
+        machine_t *machine = list_getindex(&machines, i);
+        machine->prize.x += UNIT_ERROR;
+        machine->prize.y += UNIT_ERROR;
+        coord_t combo = best_combo(machine);
+        total += cost(combo);
+    }
 
     /* Close input */
 
