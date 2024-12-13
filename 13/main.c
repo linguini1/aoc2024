@@ -43,9 +43,9 @@ static void print_machine(machine_t const *machine, int newline) {
 
 /* Calculate the cost of a series of presses */
 
-static size_t cost(coord_t presses) { return presses.x * A_COST + presses.y * B_COST; }
+static size_t cost(coord_t presses) { return (size_t)presses.x * A_COST + (size_t)presses.y * B_COST; }
 
-coord_t best_combo(const machine_t *machine);
+coord_t best_combo(const machine_t *machine, bool limit);
 
 int main(int argc, char **argv) {
 
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     size_t total = 0;
     for (size_t i = 0; i < list_len(&machines); i++) {
         machine_t *machine = list_getindex(&machines, i);
-        total += cost(best_combo(machine));
+        total += cost(best_combo(machine, true));
     }
 
     printf("%zu\n", total);
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
         machine_t *machine = list_getindex(&machines, i);
         machine->prize.x += UNIT_ERROR;
         machine->prize.y += UNIT_ERROR;
-        coord_t combo = best_combo(machine);
+        coord_t combo = best_combo(machine, false);
         total += cost(combo);
     }
 
@@ -143,10 +143,11 @@ int main(int argc, char **argv) {
 
 /* Determines the best combination of a & b buttons to win the prize for the lowest price.
  * @param machine The machine to beat
+ * @param limit Limit the combinations to those where the button presses are under 100
  * @return A coordinate pair where x represents the number of a presses and y is b presses. If both numbers are 0, this
  * prize machine can't be beat.
  */
-coord_t best_combo(const machine_t *machine) {
+coord_t best_combo(const machine_t *machine, bool limit) {
 
     /* (A * a.x) + (B * b.x) = prize.x
      * (A * a.y) + (B * b.y) = prize.y
@@ -171,7 +172,7 @@ coord_t best_combo(const machine_t *machine) {
      * to win a prize.
      */
 
-    if (presses.x > 100 || presses.y > 100 || presses.x < 0 || presses.y < 0) {
+    if ((limit && presses.x > 100) || (limit && presses.y > 100) || presses.x < 0 || presses.y < 0) {
         return (coord_t){.x = 0, .y = 0};
     }
 
