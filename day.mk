@@ -1,7 +1,11 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
+
+YEAR = 2024
 DAY = $(lastword $(subst /, ,$(abspath .)))
+
 OUT = day$(DAY)
+INPUT = input.txt
 
 SRCS = $(wildcard *.c)
 OBJS = $(patsubst %.c,%.o,$(SRCS))
@@ -18,9 +22,14 @@ $(OUT): $(OBJS) $(COMMON_OBJS)
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-run: $(OUT)
+run: $(OUT) $(INPUT)
 	@echo "Output for Day $(DAY)"
 	$(abspath $(OUT)) input.txt
+
+input: $(INPUT)
+
+$(INPUT):
+	python3 ../getinput.py $(YEAR) $(DAY) > $(INPUT)
 
 clean:
 	@rm $(OBJS)
