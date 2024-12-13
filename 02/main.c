@@ -59,8 +59,8 @@ int main(int argc, char **argv) {
 
         /* Ensure the list meets requirements */
 
-        total_pure_safe += report_safe(&report, false, list_getlen(&report));
-        total_damp_safe += report_safe(&report, true, list_getlen(&report));
+        total_pure_safe += report_safe(&report, false, list_len(&report));
+        total_damp_safe += report_safe(&report, true, list_len(&report));
     }
 
     printf("%lu\n", total_pure_safe);
@@ -80,7 +80,7 @@ bool report_safe(list_t *report, bool with_dampener, size_t skip_index) {
 
     /* Any report that is less than two numbers cannot be increasing or decreasing */
 
-    if (list_getlen(report) < 2) {
+    if (list_len(report) < 2) {
         return false;
     }
 
@@ -90,7 +90,7 @@ bool report_safe(list_t *report, bool with_dampener, size_t skip_index) {
     int cur_num;
     unsigned int num_incr = 0;
 
-    for (size_t i = 1; i < list_getlen(report); i++) {
+    for (size_t i = 1; i < list_len(report); i++) {
         cur_num = deref(int, list_getindex(report, i));
         if (cur_num - last_num > 0) {
             num_incr++;
@@ -100,7 +100,7 @@ bool report_safe(list_t *report, bool with_dampener, size_t skip_index) {
 
     /* If most pairs have an increasing pattern, then we assume increase for this list */
 
-    bool increasing = num_incr > (list_getlen(report) - num_incr);
+    bool increasing = num_incr > (list_len(report) - num_incr);
 
     /* If the first index should be skipped, lets offset the start position */
 
@@ -114,7 +114,7 @@ bool report_safe(list_t *report, bool with_dampener, size_t skip_index) {
     int diff;
     bool safe_round;
     last_num = deref(int, list_getindex(report, start_position));
-    for (size_t i = start_position + 1; i < list_getlen(report); i++) {
+    for (size_t i = start_position + 1; i < list_len(report); i++) {
 
         /* Skip the skip index before any calculations */
 

@@ -177,7 +177,7 @@ void blink(hmap_t *stones, hmap_t *recipes) {
     size_t *round_count;
     recipe_t *recipe;
 
-    for (size_t i = 0; i < list_getlen(&key_list); i++) {
+    for (size_t i = 0; i < list_len(&key_list); i++) {
 
         cur = list_getindex(&key_list, i);
         round_count = list_getindex(&count_list, i);

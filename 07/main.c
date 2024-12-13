@@ -111,7 +111,7 @@ static size_t eq_eval(size_t operations, size_t num_operators, list_t *equation)
 
     size_t result = deref(size_t, list_getindex(equation, 0));
 
-    for (size_t i = 1; i < list_getlen(equation); i++) {
+    for (size_t i = 1; i < list_len(equation); i++) {
 
         size_t current = deref(size_t, list_getindex(equation, i));
         size_t operator= operations % num_operators;
@@ -164,7 +164,7 @@ static bool _eq_possible(size_t test, list_t *equation, size_t num_operators) {
      * to a general case with `m` operators, and now the operation bitfield is no longer a bitfield but simply a number.
      */
 
-    size_t max = pow(num_operators, list_getlen(equation) - 1);
+    size_t max = pow(num_operators, list_len(equation) - 1);
     for (size_t i = 0; i < max; i++) {
         if (test == eq_eval(i, num_operators, equation)) {
             return true;

@@ -65,7 +65,7 @@ int list_append(list_t *list, void *element) {
  * @param list The list to get the length of
  * @return The length of the list
  */
-size_t list_getlen(const list_t *list) { return list->len; }
+size_t list_len(const list_t *list) { return list->len; }
 
 /*
  * Gets a reference to the element at index `i`.

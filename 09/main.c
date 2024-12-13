@@ -94,20 +94,20 @@ void coarse_grain_compact(const list_t *og_files, list_t *compacted) {
 
     /* Create a copy of the original files so we can modify them */
 
-    list_create(compacted, list_getlen(og_files), sizeof(file_t));
-    for (size_t i = 0; i < list_getlen(og_files); i++) {
+    list_create(compacted, list_len(og_files), sizeof(file_t));
+    for (size_t i = 0; i < list_len(og_files); i++) {
         list_append(compacted, list_getindex(og_files, i));
     }
 
     /* Compact the files. Now we consider the index into the list to be the position of the file */
 
-    for (size_t i = list_getlen(og_files) - 1; i > 0; i--) {
+    for (size_t i = list_len(og_files) - 1; i > 0; i--) {
 
         /* Get the highest ID file and try to move it */
 
         file_t *to_move;
         size_t taken_from = 0;
-        for (taken_from = 0; taken_from < list_getlen(compacted); taken_from++) {
+        for (taken_from = 0; taken_from < list_len(compacted); taken_from++) {
 
             /* Go through the list until we find the file ID we're looking for */
             to_move = list_getindex(compacted, taken_from);
@@ -118,7 +118,7 @@ void coarse_grain_compact(const list_t *og_files, list_t *compacted) {
 
         /* Go through current compacted file system state and look for somewhere with room to move to */
 
-        for (size_t j = 0; j < list_getlen(compacted); j++) {
+        for (size_t j = 0; j < list_len(compacted); j++) {
 
             /* Get the next file slot */
 
@@ -171,8 +171,8 @@ void fine_grain_compact(const list_t *og_files, list_t *compacted) {
     /* Create a copy of the original files so we can modify them */
 
     list_t cpfiles;
-    list_create(&cpfiles, list_getlen(og_files), sizeof(file_t));
-    for (size_t i = 0; i < list_getlen(og_files); i++) {
+    list_create(&cpfiles, list_len(og_files), sizeof(file_t));
+    for (size_t i = 0; i < list_len(og_files); i++) {
         list_append(&cpfiles, list_getindex(og_files, i));
     }
 
@@ -192,7 +192,7 @@ void fine_grain_compact(const list_t *og_files, list_t *compacted) {
         }
 
         /* Get the last file in the compacted list */
-        head = list_getindex(compacted, list_getlen(compacted) - 1);
+        head = list_getindex(compacted, list_len(compacted) - 1);
 
         /* If there is no free space at the end of this file, we have to go to the next file to see if it has free space
          * that we can use */
@@ -208,7 +208,7 @@ void fine_grain_compact(const list_t *og_files, list_t *compacted) {
             head = list_getindex(&cpfiles, last);
             if (head == NULL) break;
             list_append(compacted, head);
-            head = list_getindex(compacted, list_getlen(compacted) - 1); /* Use our copy */
+            head = list_getindex(compacted, list_len(compacted) - 1); /* Use our copy */
         }
         if (head == NULL) break;
 
@@ -248,7 +248,7 @@ void fine_grain_compact(const list_t *og_files, list_t *compacted) {
  */
 size_t checksum(const list_t *filesystem) {
     size_t checksum = 0;
-    for (size_t i = 0, pos = 0; i < list_getlen(filesystem); i++) {
+    for (size_t i = 0, pos = 0; i < list_len(filesystem); i++) {
         file_t *cur = list_getindex(filesystem, i);
 
         /* Add up each block */

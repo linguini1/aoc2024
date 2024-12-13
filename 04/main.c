@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
         list_append(&grid, &c);
     }
     ylen--; /* Subtract extra count for EOF */
-    size_t xlen = list_getlen(&grid) / ylen;
+    size_t xlen = list_len(&grid) / ylen;
 
     /* Recursively count occurrences of the word XMAS from each 'X' */
 

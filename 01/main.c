@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     /* Compute the sum of the distances between each element */
 
     size_t sum = 0;
-    for (size_t i = 0; i < list_getlen(&ls); i++) {
+    for (size_t i = 0; i < list_len(&ls); i++) {
         sum += abs(*((int *)(list_getindex(&ls, i))) - *((int *)(list_getindex(&rs, i))));
     }
 
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     int current;
     size_t last_count;
 
-    for (size_t i = 0; i < list_getlen(&ls); i++) {
+    for (size_t i = 0; i < list_len(&ls); i++) {
 
         /* If this number has already been seen, we accounted for it already */
 

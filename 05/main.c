@@ -99,10 +99,10 @@ int main(int argc, char **argv) {
         /* Process update list to verify correct order */
 
         if (ordered_correctly(&update, &rulebook)) {
-            total_correct += deref(int, list_getindex(&update, list_getlen(&update) / 2));
+            total_correct += deref(int, list_getindex(&update, list_len(&update) / 2));
         } else {
             reorder(&update);
-            total_incorrect += deref(int, list_getindex(&update, list_getlen(&update) / 2));
+            total_incorrect += deref(int, list_getindex(&update, list_len(&update) / 2));
         }
 
         /* Delete update list to be made fresh */
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
 bool ordered_correctly(list_t *update, hmap_t *rules) {
 
     /* Check each list element precedes what it should */
-    for (size_t i = 0; i < list_getlen(update); i++) {
+    for (size_t i = 0; i < list_len(update); i++) {
 
         int elem = deref(int, list_getindex(update, i));
         list_t *precedes = hmap_get(rules, &elem);
@@ -136,7 +136,7 @@ bool ordered_correctly(list_t *update, hmap_t *rules) {
 
         /* Make sure everything after this element is something it can precede */
 
-        for (size_t j = i + 1; j < list_getlen(update); j++) {
+        for (size_t j = i + 1; j < list_len(update); j++) {
             int after = deref(int, list_getindex(update, j));
             if (!list_in(precedes, &after)) {
                 return false; /* Number after element is not in its precedes list */

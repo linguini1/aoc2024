@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
     list_create(&registry, 100, sizeof(region_t));
 
     set_t visited; /* Master list of all cells recorded to a region already. */
-    set_create(&visited, NULL, list_getlen(&grid), sizeof(coord_t));
+    set_create(&visited, NULL, list_len(&grid), sizeof(coord_t));
 
     /* Iterate through all cells and flood from them if they haven't been recorded yet. */
 
@@ -149,9 +149,8 @@ int main(int argc, char **argv) {
 
     size_t normie_price = 0;
     size_t bulk_price = 0;
-    for (size_t i = 0; i < list_getlen(&registry); i++) {
+    for (size_t i = 0; i < list_len(&registry); i++) {
         region_t *region = list_getindex(&registry, i);
-        /*printf("Region(type=%c, area=%lu, perimeter=%lu)\n", region->type, region->area, region->perimeter);*/
         normie_price += region->area * region->perimeter;
         bulk_price += region->area * region->sides;
     }

@@ -18,7 +18,7 @@ void list_create(list_t *list, size_t init_len, size_t elem_size);
 void list_destroy(list_t *list);
 
 int list_append(list_t *list, void *element);
-size_t list_getlen(list_t const *list);
+size_t list_len(list_t const *list);
 void *list_getindex(list_t const *list, size_t i);
 int list_in(list_t const *list, const void *e);
 int list_setindex(list_t *list, size_t i, const void *e);

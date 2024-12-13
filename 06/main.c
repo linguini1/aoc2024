@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 
         list_append(&grid, &c);
     }
-    xlen = list_getlen(&grid) / ylen;
+    xlen = list_len(&grid) / ylen;
 
     /* Get starting position of guard */
 

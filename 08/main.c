@@ -111,8 +111,8 @@ int main(int argc, char **argv) {
 
         coord_t antipair[2];
 
-        for (size_t i = 0; i < list_getlen(antennas); i++) {
-            for (size_t j = 0; j < list_getlen(antennas); j++) {
+        for (size_t i = 0; i < list_len(antennas); i++) {
+            for (size_t j = 0; j < list_len(antennas); j++) {
 
                 /* Skip pairs of the same antenna */
                 if (i == j) continue;
