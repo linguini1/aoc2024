@@ -157,11 +157,12 @@ coord_t best_combo(const machine_t *machine) {
     /* No solution exists for this claw machine since we estimate each button shouldn't be pressed more than 100 times
      * to win a prize.
      */
-    if (presses.x > 100 || presses.y > 100) {
+    if (presses.x > 100 || presses.y > 100 || presses.x < 0 || presses.y < 0) {
         presses.x = 0;
         presses.y = 0;
     }
 
     /* TODO 28314 too high */
+    /* TODO 28077 wrong */
     return presses;
 }
