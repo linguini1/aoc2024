@@ -4,10 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/hashmap.h"
 #include "../common/list.h"
+#include "../common/set.h"
 
 #define deref(type, thing) (*((type *)(thing)))
+#define GUARD_CHAR '^'
+#define FREESPACE '.'
 
 typedef struct {
     int x;
@@ -42,6 +44,8 @@ static int out_of_bounds(coord_t coords, size_t xlen, size_t ylen) {
 
 /* Add two coordinates */
 static coord_t coord_add(coord_t a, coord_t b) { return (coord_t){.x = a.x + b.x, .y = a.y + b.y}; }
+
+void record_visited(guard_t guard, list_t *grid, size_t xlen, size_t ylen, set_t *visited);
 
 int main(int argc, char **argv) {
 
@@ -88,19 +92,44 @@ int main(int argc, char **argv) {
 
     /* Get starting position of guard */
 
-    char guard_char = '^';
+    char guard_char = GUARD_CHAR;
     size_t start = list_index(&grid, &guard_char);
 
-    guard_t guard;
-    guard.pos.x = start % ylen;
-    guard.pos.y = (start - guard.pos.x) / ylen;
-    guard.dir = NORTH;
+    /* Replace the guard with free space since we can walk over ourselves */
 
-    /* Create 'set' of visited locations */
+    char freespace = FREESPACE;
+    list_setindex(&grid, start, &freespace);
 
-    hmap_t visited;
-    hmap_create(&visited, NULL, BUFSIZ, sizeof(coord_t), sizeof(coord_t));
-    hmap_put(&visited, &guard.pos, &guard.pos); /* Record start position */
+    guard_t guard = {
+        .pos = {.x = start % ylen, .y = (start - (start % ylen)) / ylen},
+        .dir = NORTH,
+    };
+
+    /* Create a set of visited locations */
+
+    set_t visited;
+    set_create(&visited, NULL, BUFSIZ, sizeof(coord_t));
+    record_visited(guard, &grid, xlen, ylen, &visited);
+
+    printf("%lu\n", set_len(&visited));
+
+    /* Close input */
+
+    list_destroy(&grid);
+    set_destroy(&visited);
+    fclose(puzzle);
+}
+
+/* Records all the locations visited by the guard during its journey.
+ * @param guard The guard with its initial starting position and direction
+ * @param grid The map
+ * @param xlen The number of columns in the map
+ * @param ylen The number of rows in the map
+ * @param visited A set in which to store the visited locations
+ */
+void record_visited(guard_t guard, list_t *grid, size_t xlen, size_t ylen, set_t *visited) {
+
+    set_add(visited, &guard.pos); /* Record start position */
 
     /* Start state machine logic */
 
@@ -110,13 +139,14 @@ int main(int argc, char **argv) {
         new_pos = coord_add(guard.pos, MOVE[guard.dir]);
 
         /* If the guard went out of bounds, we're done */
+
         if (out_of_bounds(new_pos, xlen, ylen)) {
             break;
         }
 
         /* If the guard would hit an object, turn 90 degrees right and continue forward */
 
-        if (deref(char, list_getindex(&grid, new_pos.y * ylen + new_pos.x)) == '#') {
+        if (deref(char, list_getindex(grid, new_pos.y * ylen + new_pos.x)) == '#') {
             guard.dir = RIGHT_TURN[guard.dir];
             continue;
         }
@@ -124,14 +154,6 @@ int main(int argc, char **argv) {
         /* If we're in the grid and didn't hit anything, we're here. Record the position */
 
         guard.pos = new_pos;
-        hmap_put(&visited, &guard.pos, &guard.pos); /* Record start position */
+        set_add(visited, &guard.pos); /* Record start position */
     }
-
-    printf("%lu\n", hmap_len(&visited));
-
-    /* Close input */
-
-    list_destroy(&grid);
-    hmap_destroy(&visited);
-    fclose(puzzle);
 }
