@@ -1,3 +1,4 @@
 input.txt
 *.o
 day*
+!day.mk
