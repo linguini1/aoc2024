@@ -118,8 +118,7 @@ int main(int argc, char **argv) {
     size_t total = 0;
     for (size_t i = 0; i < list_len(&machines); i++) {
         machine_t *machine = list_getindex(&machines, i);
-        coord_t combo = best_combo(machine);
-        total += cost(combo);
+        total += cost(best_combo(machine));
     }
 
     printf("%zu\n", total);
@@ -135,6 +134,8 @@ int main(int argc, char **argv) {
         total += cost(combo);
     }
 
+    printf("%zu\n", total);
+
     /* Close input */
 
     fclose(puzzle);
@@ -147,14 +148,32 @@ int main(int argc, char **argv) {
  */
 coord_t best_combo(const machine_t *machine) {
 
-    coord_t combo;
-    for (combo.x = 0; combo.x < 100; combo.x++) {
-        for (combo.y = 0; combo.y < 100; combo.y++) {
-            if ((combo.x * machine->a.x + combo.y * machine->b.x == machine->prize.x) &&
-                (combo.x * machine->a.y + combo.y * machine->b.y == machine->prize.y)) {
-                return combo;
-            }
-        }
+    /* (A * a.x) + (B * b.x) = prize.x
+     * (A * a.y) + (B * b.y) = prize.y
+     *
+     * 2 equations, two unknowns, algebra.
+     */
+
+    coord_t presses = {.x = 0, .y = 0};
+
+    presses.y = (machine->prize.y * machine->a.x - machine->prize.x * machine->a.y) /
+                (-machine->b.x * machine->a.y + machine->b.y * machine->a.x);
+    presses.x = (machine->prize.x - presses.y * machine->b.x) / machine->a.x;
+
+    /* Sanity check solution */
+
+    if (!((presses.x * machine->a.x + presses.y * machine->b.x == machine->prize.x) &&
+          (presses.x * machine->a.y + presses.y * machine->b.y == machine->prize.y))) {
+        return (coord_t){.x = 0, .y = 0};
     }
-    return (coord_t){.x = 0, .y = 0};
+
+    /* No solution exists for this claw machine since we estimate each button shouldn't be pressed more than 100 times
+     * to win a prize.
+     */
+
+    if (presses.x > 100 || presses.y > 100 || presses.x < 0 || presses.y < 0) {
+        return (coord_t){.x = 0, .y = 0};
+    }
+
+    return presses;
 }
