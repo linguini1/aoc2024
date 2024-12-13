@@ -124,11 +124,8 @@ int main(int argc, char **argv) {
 
     coord_t *loc;
     size_t i = 0;
-    size_t count = 0;
     while (set_iter(&visited, &i, (void *)&loc) != NULL) {
 
-        count++;
-        printf("Iteration %lu\n", count);
         /* Can't put an obstacle where the guard is standing! */
 
         if (loc->x == guard.pos.x && loc->y == guard.pos.y) continue;
@@ -159,7 +156,7 @@ bool has_loop(guard_t guard, list_t *grid, size_t xlen, size_t ylen) {
     /* Local copy of visited locations for this run */
 
     set_t visited;
-    set_create(&visited, NULL, 2048, sizeof(guard_t));
+    set_create(&visited, NULL, BUFSIZ, sizeof(guard_t));
 
     set_add(&visited, &guard.pos); /* Record start position */
 
