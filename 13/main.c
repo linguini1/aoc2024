@@ -14,8 +14,8 @@
 #define B_COST 1
 
 typedef struct {
-    int x;
-    int y;
+    int64_t x;
+    int64_t y;
 } coord_t;
 
 typedef struct {
@@ -33,7 +33,7 @@ static coord_t coord_add(coord_t a, coord_t b) { return (coord_t){.x = a.x + b.x
 /* Print out a claw machine */
 
 static void print_machine(machine_t const *machine, int newline) {
-    printf("Machine((%d, %d), (%d, %d), (%d, %d))", machine->a.x, machine->a.y, machine->b.x, machine->b.y,
+    printf("Machine((%ld, %ld), (%ld, %ld), (%ld, %ld))", machine->a.x, machine->a.y, machine->b.x, machine->b.y,
            machine->prize.x, machine->prize.y);
     if (newline) {
         printf("\n");
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
         /* How many different ways to reach the count? */
 
         coord_t combo = best_combo(machine);
-        printf("A: %d, B: %d\n", combo.x, combo.y);
+        printf("A: %ld, B: %ld\n", combo.x, combo.y);
 
         total += cost(combo);
     }
@@ -152,7 +152,7 @@ coord_t best_combo(const machine_t *machine) {
                 (-machine->b.x * machine->a.y + machine->b.y * machine->a.x);
     presses.x = (machine->prize.x - presses.y * machine->b.x) / machine->a.x;
 
-    printf("Pre-check - A: %d, B: %d\n", presses.x, presses.y);
+    printf("Pre-check - A: %ld, B: %ld\n", presses.x, presses.y);
 
     /* No solution exists for this claw machine since we estimate each button shouldn't be pressed more than 100 times
      * to win a prize.
