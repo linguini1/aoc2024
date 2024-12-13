@@ -14,6 +14,11 @@ COMMONDIR = $(abspath ../common)
 COMMON_SRCS += $(wildcard $(COMMONDIR)/*.c)
 COMMON_OBJS = $(patsubst %.c,%.o,$(COMMON_SRCS))
 
+run: QUIET = 1
+ifndef QUIET
+.SILENT:
+endif
+
 all: $(OUT)
 
 $(OUT): $(OBJS) $(COMMON_OBJS)
