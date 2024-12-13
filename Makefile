@@ -1,22 +1,20 @@
-COMMON = common
 SUBDIRS = $(patsubst %/,%,$(wildcard */))
-DAYS = $(filter-out $(COMMON),$(SUBDIRS))
-CLEAN_DAYS = $(addsuffix -clean,$(DAYS))
+CLEAN_DIRS = $(addsuffix -clean,$(SUBDIRS))
 
-# Allow us to make days
+# Allow us to call Makefiles in the subdirectories
 
-.PHONY: $(DAYS)
+.PHONY: $(SUBDIRS)
 
-all: $(DAYS)
+all: $(SUBDIRS)
 	@echo "All built!"
 
 # Any day can be made
 
-$(DAYS):
-	$(MAKE) -C $@ DAY=$@
+$(SUBDIRS):
+	$(MAKE) -C $@
 
 %-clean: %
-	$(MAKE) -C $< clean DAY=$<
+	$(MAKE) -C $< clean
 
-clean: $(CLEAN_DAYS)
+clean: $(CLEAN_DIRS)
 	@echo "All clean!"

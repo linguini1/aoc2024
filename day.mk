@@ -1,11 +1,13 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
+DAY = $(lastword $(subst /, ,$(abspath .)))
 OUT = day$(DAY)
 
 SRCS = $(wildcard *.c)
 OBJS = $(patsubst %.c,%.o,$(SRCS))
 
-COMMON_SRCS += $(wildcard ../common/*.c)
+COMMONDIR = $(abspath ../common)
+COMMON_SRCS += $(wildcard $(COMMONDIR)/*.c)
 COMMON_OBJS = $(patsubst %.c,%.o,$(COMMON_SRCS))
 
 all: $(OUT)
