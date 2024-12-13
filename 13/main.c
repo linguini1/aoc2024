@@ -116,8 +116,13 @@ int main(int argc, char **argv) {
 
     size_t total = 0;
     for (size_t i = 0; i < list_len(&machines); i++) {
-        coord_t combo = best_combo(list_getindex(&machines, i));
+        machine_t *machine = list_getindex(&machines, i);
+
+        /* How many different ways to reach the count? */
+
+        coord_t combo = best_combo(machine);
         printf("A: %d, B: %d\n", combo.x, combo.y);
+
         total += cost(combo);
     }
 
@@ -128,42 +133,6 @@ int main(int argc, char **argv) {
     fclose(puzzle);
 }
 
-/* First machine: 80A 40B
- * 8400 % 22 = 18       ;
- * 5400 % 34 = 28       ;
- *
- * 8400 % 94 = 34       ;
- * 5400 % 67 = 40       ;
- *
- * Second machine, no solution.
- * 12748 % 26 = 8         ;
- * 12176 % 66 = 32        ;
- *
- * 12748 % 67 = 18        ;
- * 12176 % 21 = 17        ;
- *
- * Third machine: 38A & 86B
- * 7879 % 17 = 8        ;
- * 6450 % 86 = 0        ;
- *
- * 7879 % 84 = 67       ;
- * 6450 % 37 = 12       ;
- *
- * (A * a.x) + (B * b.x) = prize.x
- * (A * a.y) + (B * b.y) = prize.y
- *
- * 2 equations, two unknowns
- *
- * A * a.x = prize.x - (B * b.y)
- * A = (prize.x - (B * b.y)) / a.x
- *
- * A * a.y = prize.y - (B * b.y)
- * A = (prize.y - (B * b.y)) / a.y
- * (prize.x - (B * b.y)) / a.x = (prize.y - (B * b.y)) / a.y
- * prize.x - (B * b.y)  = (a.x * (prize.y - (B * b.y))) / a.y
- *
- */
-
 /* Determines the best combination of a & b buttons to win the prize for the lowest price.
  * @param machine The machine to beat
  * @return A coordinate pair where x represents the number of a presses and y is b presses. If both numbers are 0, this
@@ -171,12 +140,19 @@ int main(int argc, char **argv) {
  */
 coord_t best_combo(const machine_t *machine) {
 
+    /* (A * a.x) + (B * b.x) = prize.x
+     * (A * a.y) + (B * b.y) = prize.y
+     *
+     * 2 equations, two unknowns, algebra.
+     */
+
     coord_t presses = {.x = 0, .y = 0};
-    coord_t position = {.x = 0, .y = 0};
 
     presses.y = (machine->prize.y * machine->a.x - machine->prize.x * machine->a.y) /
                 (-machine->b.x * machine->a.y + machine->b.y * machine->a.x);
     presses.x = (machine->prize.x - presses.y * machine->b.x) / machine->a.x;
+
+    printf("Pre-check - A: %d, B: %d\n", presses.x, presses.y);
 
     /* No solution exists for this claw machine since we estimate each button shouldn't be pressed more than 100 times
      * to win a prize.
