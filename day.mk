@@ -18,8 +18,9 @@ $(OUT): $(OBJS) $(COMMON_OBJS)
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-run:
-	$(OUT)
+run: $(OUT)
+	@echo "Output for Day $(DAY)"
+	$(abspath $(OUT)) input.txt
 
 clean:
 	@rm $(OBJS)
