@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     /* Each second, move the robots */
 
     int grid[XLEN * YLEN];
-    for (size_t t = 0; t < SECONDS; t++) {
+    for (size_t t = 0;; t++) {
 
         /* Create grid to show the Christmas tree shape */
 
@@ -120,7 +120,6 @@ int main(int argc, char **argv) {
         /* Print the map */
 
         printf("Map for second %zu\n", t + 1);
-
         for (size_t y = 0; y < YLEN; y++) {
             for (size_t x = 0; x < XLEN; x++) {
                 if (grid[y * XLEN + x]) {
@@ -131,6 +130,7 @@ int main(int argc, char **argv) {
             }
             printf("\n");
         }
+        usleep(500000);
     }
 
     /* Check how many robots are in each quadrant */
