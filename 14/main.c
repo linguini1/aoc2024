@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "../common/list.h"
 
@@ -97,7 +98,12 @@ int main(int argc, char **argv) {
 
     /* Each second, move the robots */
 
+    int grid[XLEN * YLEN];
     for (size_t t = 0; t < SECONDS; t++) {
+
+        /* Create grid to show the Christmas tree shape */
+
+        memset(grid, 0, sizeof(grid));
 
         /* Iterate over each robot and update its position */
 
@@ -105,6 +111,25 @@ int main(int argc, char **argv) {
             robot_t *robot = list_getindex(&robots, i);
             coord_t newpos = coord_add(robot->pos, robot->vel);
             robot->pos = newpos;
+
+            /* Put the robot on the grid */
+
+            grid[newpos.y * XLEN + newpos.x] = 1;
+        }
+
+        /* Print the map */
+
+        printf("Map for second %zu\n", t + 1);
+
+        for (size_t y = 0; y < YLEN; y++) {
+            for (size_t x = 0; x < XLEN; x++) {
+                if (grid[y * XLEN + x]) {
+                    printf("#");
+                } else {
+                    printf(" ");
+                }
+            }
+            printf("\n");
         }
     }
 
