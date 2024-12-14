@@ -138,6 +138,7 @@ int main(int argc, char **argv) {
 
     /* Close input */
 
+    list_destroy(&machines);
     fclose(puzzle);
 }
 
