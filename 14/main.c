@@ -13,7 +13,7 @@
 
 #define XLEN 101
 #define YLEN 103
-#define SECONDS 100
+#define DEFAULT_SECONDS 100
 
 typedef struct {
     int x;
@@ -26,6 +26,8 @@ typedef struct {
 } robot_t;
 
 static char buffer[BUFSIZ];
+
+static size_t seconds = DEFAULT_SECONDS;
 
 /* Add two coordinates */
 
@@ -54,6 +56,12 @@ int main(int argc, char **argv) {
     if (argc < 2) {
         fprintf(stderr, "Provide the name of the file to use as puzzle input.\n");
         return EXIT_FAILURE;
+    }
+
+    /* Get the number of seconds to run for */
+
+    if (argc == 3) {
+        seconds = strtoul(argv[2], NULL, 10);
     }
 
     /* Open the puzzle input */
@@ -99,7 +107,8 @@ int main(int argc, char **argv) {
     /* Each second, move the robots */
 
     int grid[XLEN * YLEN];
-    for (size_t t = 0;; t++) {
+    if (seconds == 0) seconds = SIZE_MAX;
+    for (size_t t = 0; t < seconds; t++) {
 
         /* Create grid to show the Christmas tree shape */
 
@@ -117,20 +126,34 @@ int main(int argc, char **argv) {
             grid[newpos.y * XLEN + newpos.x] = 1;
         }
 
-        /* Print the map */
+        /* Print the map if we're looking for the tree */
 
-        printf("Map for second %zu\n", t + 1);
-        for (size_t y = 0; y < YLEN; y++) {
-            for (size_t x = 0; x < XLEN; x++) {
-                if (grid[y * XLEN + x]) {
-                    printf("#");
-                } else {
-                    printf(" ");
+        if (seconds == SIZE_MAX) {
+
+            size_t max_row_sum = 0;
+            for (size_t y = 0; y < YLEN; y++) {
+                size_t row_sum = 0;
+                for (size_t x = 0; x < XLEN; x++) {
+                    row_sum += grid[y * XLEN + x];
                 }
+                if (row_sum > max_row_sum) max_row_sum = row_sum;
             }
-            printf("\n");
+
+            if (max_row_sum >= XLEN / 3) {
+                printf("Map for second %zu\n", t + 1);
+                for (size_t y = 0; y < YLEN; y++) {
+                    for (size_t x = 0; x < XLEN; x++) {
+                        if (grid[y * XLEN + x]) {
+                            printf("#");
+                        } else {
+                            printf(" ");
+                        }
+                    }
+                    printf("\n");
+                }
+                printf("\n");
+            }
         }
-        usleep(500000);
     }
 
     /* Check how many robots are in each quadrant */
