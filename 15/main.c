@@ -135,15 +135,19 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < list_len(&moves); i++) {
         move_e move = deref(move_e, list_getindex(&moves, i));
         robot_move(&grid, xlen, ylen, move);
+    }
 
-        /* Show grid */
-        for (size_t y = 0; y < ylen; y++) {
-            for (size_t x = 0; x < xlen; x++) {
-                printf("%c", deref(char, list_getindex(&grid, y * xlen + x)));
+    /* Get GPS coordinates of boxes */
+
+    size_t total = 0;
+    for (size_t y = 0; y < ylen; y++) {
+        for (size_t x = 0; x < xlen; x++) {
+            if (deref(char, list_getindex(&grid, y * xlen + x)) == BOX) {
+                total += (100 * y + x);
             }
-            printf("\n");
         }
     }
+    printf("%zu\n", total);
 
     /* Close input */
 
@@ -171,7 +175,6 @@ void robot_move(list_t *grid, size_t xlen, size_t ylen, move_e move) {
     };
 
     /* Check if the move can happen */
-    printf("Moving %s\n", MOVE_STR[move]);
 
     /* Out of bounds, nuh uh */
 
@@ -256,7 +259,6 @@ void robot_move(list_t *grid, size_t xlen, size_t ylen, move_e move) {
 
     char value = EMPTY_SPACE;
     list_setindex(grid, pos.y * xlen + pos.x, &value); /* Robot's last position is free now */
-    printf("Shift loc %zu\n", shift_loc);
 
     value = BOX;
     switch (move) {
